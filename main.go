@@ -65,21 +65,25 @@ type Item struct {
 }
 
 func main() {
-	var dest []Inventory
+	var err error
+
+	var dest Inventory
 
 	query := SelectQuery{
-		From: "inventories",
+		From:  "inventories",
+		Where: &And{&Eq{"inventory_id", "b"}, &Eq{"location_id", 0}},
 	}
-	err := query.Fill(dest)
+	err = SelectOne(&dest, query)
 
-	// // err := db.QueryRow(context.Background(), "SELECT buildings FROM inventories WHERE inventory_id = $1", "wallaaaacccd").Scan(&dest)
-	// err := SelectRow("inventories", &dest, Map{"inventory_id": "wallaaaacccd"})
+	fmt.Println("Result:", dest)
+
+	// err = InsertRow("inventories", Inventory{
+	// 	InventoryId: "c",
+	// })
 
 	if err != nil {
 		fmt.Println(err)
 	}
-
-	fmt.Println(dest)
 
 	// fmt.Println("Buildings:", dest)
 
