@@ -69,7 +69,7 @@ func SelectOne[T any](dest *T, q SelectQuery) (err error) {
 	slice := make([]T, 0, 1)
 	err = Select(&slice, q)
 
-	if err == nil {
+	if err == nil && len(slice) != 0 {
 		*dest = slice[0]
 	}
 
