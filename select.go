@@ -69,9 +69,15 @@ func SelectOne[T any](dest *T, q SelectQuery) (err error) {
 	slice := make([]T, 0, 1)
 	err = Select(&slice, q)
 
-	if err == nil && len(slice) != 0 {
-		*dest = slice[0]
+	if err != nil {
+		return
 	}
+
+	if len(slice) == 0 {
+		return errors.New("Row not found")
+	}
+
+	*dest = slice[0]
 
 	return
 }
