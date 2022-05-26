@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	"errors"
-	"fmt"
 	"reflect"
 	"strconv"
 	"strings"
@@ -26,11 +25,6 @@ type SelectQuery struct {
 }
 
 func (q *SelectQuery) run() (err error) {
-	// TODO: Reflect dest instead
-	if len(q.Select) == 0 {
-		q.Select = []string{"*"}
-	}
-
 	if q.From == "" {
 		return errors.New("Missing mandatory 'From' field")
 	}
@@ -65,16 +59,7 @@ func (q *SelectQuery) run() (err error) {
 	}
 
 	query := strings.Join(parts, "\n") + ";"
-	fmt.Println(query)
 	q.result, err = db.Query(context.Background(), query, args...)
-
-	return
-}
-
-func (q *SelectQuery) Test(dest any) (err error) {
-	v := reflect.ValueOf(dest)
-
-	v.Set(reflect.Append(v, reflect.ValueOf(123)))
 
 	return
 }
