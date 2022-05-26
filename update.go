@@ -1,4 +1,4 @@
-package main
+package crate
 
 import (
 	"context"
@@ -9,7 +9,7 @@ import (
 	"golang.org/x/exp/slices"
 )
 
-func UpdateRow(table string, src any, condition Map, columns ...string) (err error) {
+func Update(table string, src any, condition Condition, columns ...string) (err error) {
 	elem := reflect.ValueOf(src)
 
 	if elem.Kind() == reflect.Pointer {
@@ -20,9 +20,7 @@ func UpdateRow(table string, src any, condition Map, columns ...string) (err err
 	typ := elem.Type()
 	numFields := elem.NumField()
 	fields := make([]string, 0, numFields)
-	numCond := len(condition)
-	cond := make([]string, 0, numCond)
-	args := make([]any, 0, numFields+numCond)
+	args := make([]any, 0, numFields)
 
 	idx := 0
 
@@ -36,7 +34,7 @@ func UpdateRow(table string, src any, condition Map, columns ...string) (err err
 		}
 
 		if allColumns || slices.Contains(columns, col) {
-			if _, exists := condition[col]; exists {
+			if fld.Tag.Get("db") == "primary" {
 				continue
 			}
 
@@ -46,13 +44,7 @@ func UpdateRow(table string, src any, condition Map, columns ...string) (err err
 		}
 	}
 
-	for k, v := range condition {
-		idx++
-		cond = append(cond, k+" = $"+strconv.Itoa(idx))
-		args = append(args, v)
-	}
-
-	_, err = db.Exec(context.Background(), "UPDATE "+table+" SET "+strings.Join(fields, ", ")+" WHERE "+strings.Join(cond, ", "), args...)
+	_, err = db.Exec(context.Background(), "UPDATE "+table+" SET "+strings.Join(fields, ", ")+" WHERE "+condition.run(&args), args...)
 
 	return
 }

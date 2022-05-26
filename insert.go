@@ -1,4 +1,4 @@
-package main
+package crate
 
 import (
 	"context"
@@ -7,7 +7,7 @@ import (
 	"strings"
 )
 
-func InsertRow(table string, src any) (err error) {
+func Insert(table string, src any) (err error) {
 	elem := reflect.ValueOf(src)
 
 	if elem.Kind() == reflect.Pointer {
