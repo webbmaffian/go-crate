@@ -2,7 +2,9 @@ package crate
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
+	"io"
 	"reflect"
 	"strconv"
 	"strings"
@@ -136,6 +138,82 @@ func Select[T any](dest *[]T, q SelectQuery) (err error) {
 
 		*dest = append(*dest, destStruct)
 	}
+
+	return
+}
+
+func SelectIntoJsonStream[T any](w io.Writer, destStruct T, q SelectQuery) (err error) {
+	var selectAll bool
+
+	val := reflect.ValueOf(&destStruct)
+	elem := val.Elem()
+	typ := elem.Type()
+	numFields := elem.NumField()
+	destProps := make([]any, 0, numFields)
+
+	if len(q.Select) == 0 {
+		selectAll = true
+		q.Select = make([]string, 0, numFields)
+	}
+
+	for i := 0; i < numFields; i++ {
+		f := elem.Field(i)
+		fld := typ.Field(i)
+		col, ok := fld.Tag.Lookup("json")
+
+		if !ok {
+			col = fld.Name
+		}
+
+		if selectAll {
+			q.Select = append(q.Select, col)
+		}
+
+		if selectAll || slices.Contains(q.Select, col) {
+			destProps = append(destProps, f.Addr().Interface())
+		}
+	}
+
+	err = q.run()
+
+	if err != nil {
+		return
+	}
+
+	defer q.result.Close()
+
+	w.Write([]byte("["))
+
+	var i int
+	var b []byte
+
+	for q.result.Next() {
+		err = q.result.Scan(destProps...)
+
+		if err != nil {
+			return
+		}
+
+		if i != 0 {
+			w.Write([]byte(","))
+		}
+
+		i++
+
+		b, err = json.Marshal(destStruct)
+
+		if err != nil {
+			return
+		}
+
+		_, err = w.Write(b)
+
+		if err != nil {
+			return
+		}
+	}
+
+	w.Write([]byte("]"))
 
 	return
 }
