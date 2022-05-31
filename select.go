@@ -22,20 +22,17 @@ type SelectQuery struct {
 	Offset  int
 
 	result pgx.Rows
+	args   []any
 }
 
-func (q *SelectQuery) run() (err error) {
-	if q.From == "" {
-		return errors.New("Missing mandatory 'From' field")
-	}
-
-	var args []any
+func (q *SelectQuery) String() string {
+	q.args = q.args[:0]
 	parts := make([]string, 0, 6)
 	parts = append(parts, "SELECT "+strings.Join(q.Select, ", "))
 	parts = append(parts, "FROM "+q.From)
 
 	if q.Where != nil {
-		parts = append(parts, "WHERE "+q.Where.run(&args))
+		parts = append(parts, "WHERE "+q.Where.run(&q.args))
 	}
 
 	if q.GroupBy != "" {
@@ -43,7 +40,7 @@ func (q *SelectQuery) run() (err error) {
 	}
 
 	if q.Having != nil {
-		parts = append(parts, "HAVING "+q.Having.run(&args))
+		parts = append(parts, "HAVING "+q.Having.run(&q.args))
 	}
 
 	if q.OrderBy != "" {
@@ -58,8 +55,15 @@ func (q *SelectQuery) run() (err error) {
 		parts = append(parts, "OFFSET "+strconv.Itoa(q.Offset))
 	}
 
-	query := strings.Join(parts, "\n") + ";"
-	q.result, err = db.Query(context.Background(), query, args...)
+	return strings.Join(parts, "\n") + ";"
+}
+
+func (q *SelectQuery) run() (err error) {
+	if q.From == "" {
+		return errors.New("Missing mandatory 'From' field")
+	}
+
+	q.result, err = db.Query(context.Background(), q.String(), q.args...)
 
 	return
 }
