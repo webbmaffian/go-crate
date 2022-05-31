@@ -11,8 +11,8 @@ type Condition interface {
 
 type Raw string
 
-func (c *Raw) run(args *[]any) string {
-	return string(*c)
+func (c Raw) run(args *[]any) string {
+	return string(c)
 }
 
 type Eq struct {
