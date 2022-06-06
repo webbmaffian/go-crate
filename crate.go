@@ -6,13 +6,7 @@ import (
 	"github.com/jackc/pgx/v4/pgxpool"
 )
 
-var db Pgx
-
-func SetConnection(conn *pgx.Conn) {
-	RegisterJSONArrayType(conn)
-
-	db = conn
-}
+var db *pgxpool.Pool
 
 func SetPool(pool *pgxpool.Pool) {
 	db = pool
