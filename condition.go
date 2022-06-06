@@ -62,7 +62,7 @@ type Lt struct {
 
 func (c *Lt) run(args *[]any) string {
 	*args = append(*args, c.Value)
-	return c.Column + " > $" + strconv.Itoa(len(*args))
+	return c.Column + " < $" + strconv.Itoa(len(*args))
 }
 
 type Lte struct {
@@ -72,7 +72,7 @@ type Lte struct {
 
 func (c *Lte) run(args *[]any) string {
 	*args = append(*args, c.Value)
-	return c.Column + " >= $" + strconv.Itoa(len(*args))
+	return c.Column + " <= $" + strconv.Itoa(len(*args))
 }
 
 type And []Condition
