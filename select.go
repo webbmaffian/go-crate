@@ -70,6 +70,37 @@ func (q *SelectQuery) run() (err error) {
 	return
 }
 
+func (q *SelectQuery) Next() bool {
+	if q.result == nil {
+		if err := q.run(); err != nil {
+			return false
+		}
+	}
+
+	n := q.result.Next()
+
+	if !n {
+		q.result = nil
+	}
+
+	return n
+}
+
+func (q *SelectQuery) Scan(dest ...any) error {
+	if q.result == nil {
+		return errors.New("Result is closed")
+	}
+
+	return q.result.Scan(dest...)
+}
+
+func (q *SelectQuery) Close() {
+	if q.result != nil {
+		q.result.Close()
+		q.result = nil
+	}
+}
+
 func SelectOne[T any](dest *T, q SelectQuery) (err error) {
 	q.Limit = 1
 	slice := make([]T, 0, 1)
@@ -127,10 +158,10 @@ func Select[T any](dest *[]T, q SelectQuery) (err error) {
 		return
 	}
 
-	defer q.result.Close()
+	defer q.Close()
 
-	for q.result.Next() {
-		err = q.result.Scan(destProps...)
+	for q.Next() {
+		err = q.Scan(destProps...)
 
 		if err != nil {
 			return
@@ -180,15 +211,15 @@ func SelectIntoJsonStream[T any](w io.Writer, destStruct T, q SelectQuery) (err 
 		return
 	}
 
-	defer q.result.Close()
+	defer q.Close()
 
 	w.Write([]byte("["))
 
 	var i int
 	var b []byte
 
-	for q.result.Next() {
-		err = q.result.Scan(destProps...)
+	for q.Next() {
+		err = q.Scan(destProps...)
 
 		if err != nil {
 			return
