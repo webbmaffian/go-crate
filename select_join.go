@@ -4,13 +4,9 @@ type Join interface {
 	run(args *[]any) string
 }
 
-type joinTemplate struct {
+type InnerJoin struct {
 	Table     string
 	Condition Condition
-}
-
-type InnerJoin struct {
-	joinTemplate
 }
 
 func (j *InnerJoin) run(args *[]any) string {
@@ -18,7 +14,7 @@ func (j *InnerJoin) run(args *[]any) string {
 }
 
 type OuterJoin struct {
-	joinTemplate
+	InnerJoin
 }
 
 func (j *OuterJoin) run(args *[]any) string {
@@ -26,7 +22,7 @@ func (j *OuterJoin) run(args *[]any) string {
 }
 
 type LeftJoin struct {
-	joinTemplate
+	InnerJoin
 }
 
 func (j *LeftJoin) run(args *[]any) string {
@@ -34,7 +30,7 @@ func (j *LeftJoin) run(args *[]any) string {
 }
 
 type RightJoin struct {
-	joinTemplate
+	InnerJoin
 }
 
 func (j *RightJoin) run(args *[]any) string {
