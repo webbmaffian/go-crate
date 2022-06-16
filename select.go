@@ -16,6 +16,7 @@ import (
 type SelectQuery struct {
 	Select  []string
 	From    string
+	Join    []Join
 	Where   Condition
 	GroupBy string
 	Having  Condition
@@ -32,6 +33,12 @@ func (q *SelectQuery) String() string {
 	parts := make([]string, 0, 6)
 	parts = append(parts, "SELECT "+strings.Join(q.Select, ", "))
 	parts = append(parts, "FROM "+q.From)
+
+	if q.Join != nil {
+		for _, join := range q.Join {
+			parts = append(parts, join.run(&q.args))
+		}
+	}
 
 	if q.Where != nil {
 		parts = append(parts, "WHERE "+q.Where.run(&q.args))
