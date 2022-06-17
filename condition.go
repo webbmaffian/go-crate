@@ -110,6 +110,7 @@ func (c *In) run(args *[]any) (s string) {
 		v.args = *args
 		s = c.Column + " IN (" + v.buildQuery() + ")"
 	default:
+		*args = append(*args, c.Value)
 		s = c.Column + " = ANY $" + strconv.Itoa(len(*args))
 	}
 

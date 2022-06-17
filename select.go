@@ -26,6 +26,11 @@ type SelectQuery struct {
 
 	result pgx.Rows
 	args   []any
+	error  error
+}
+
+func (q *SelectQuery) Error() error {
+	return q.error
 }
 
 func (q *SelectQuery) String() string {
@@ -84,7 +89,7 @@ func (q *SelectQuery) run() (err error) {
 
 func (q *SelectQuery) Next() bool {
 	if q.result == nil {
-		if err := q.run(); err != nil {
+		if q.error = q.run(); q.error != nil {
 			return false
 		}
 	}
