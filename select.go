@@ -30,7 +30,12 @@ type SelectQuery struct {
 
 func (q *SelectQuery) String() string {
 	q.args = q.args[:0]
-	parts := make([]string, 0, 6)
+
+	return q.buildQuery()
+}
+
+func (q *SelectQuery) buildQuery() string {
+	parts := make([]string, 0, 8)
 	parts = append(parts, "SELECT "+strings.Join(q.Select, ", "))
 	parts = append(parts, "FROM "+q.From)
 

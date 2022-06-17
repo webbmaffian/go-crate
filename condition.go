@@ -98,3 +98,20 @@ func (c *Or) run(args *[]any) string {
 
 	return "(" + strings.Join(conds, " OR ") + ")"
 }
+
+type In struct {
+	Column string
+	Value  any
+}
+
+func (c *In) run(args *[]any) (s string) {
+	switch v := c.Value.(type) {
+	case SelectQuery:
+		v.args = *args
+		s = c.Column + " IN (" + v.buildQuery() + ")"
+	default:
+		s = c.Column + " = ANY $" + strconv.Itoa(len(*args))
+	}
+
+	return
+}
