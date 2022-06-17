@@ -107,7 +107,7 @@ type In struct {
 func (c *In) run(args *[]any) (s string) {
 	switch v := c.Value.(type) {
 	case SelectQuery:
-		v.args = *args
+		v.args = args
 		s = c.Column + " IN (" + v.buildQuery() + ")"
 	default:
 		*args = append(*args, c.Value)

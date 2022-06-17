@@ -25,7 +25,7 @@ type SelectQuery struct {
 	Offset  int
 
 	result pgx.Rows
-	args   []any
+	args   *[]any
 	error  error
 }
 
@@ -34,7 +34,7 @@ func (q *SelectQuery) Error() error {
 }
 
 func (q *SelectQuery) String() string {
-	q.args = q.args[:0]
+	*q.args = (*q.args)[:0]
 
 	return q.buildQuery()
 }
@@ -46,12 +46,12 @@ func (q *SelectQuery) buildQuery() string {
 
 	if q.Join != nil {
 		for _, join := range q.Join {
-			parts = append(parts, join.run(&q.args))
+			parts = append(parts, join.run(q.args))
 		}
 	}
 
 	if q.Where != nil {
-		parts = append(parts, "WHERE "+q.Where.run(&q.args))
+		parts = append(parts, "WHERE "+q.Where.run(q.args))
 	}
 
 	if q.GroupBy != "" {
@@ -59,7 +59,7 @@ func (q *SelectQuery) buildQuery() string {
 	}
 
 	if q.Having != nil {
-		parts = append(parts, "HAVING "+q.Having.run(&q.args))
+		parts = append(parts, "HAVING "+q.Having.run(q.args))
 	}
 
 	if q.OrderBy != "" {
@@ -82,7 +82,7 @@ func (q *SelectQuery) run() (err error) {
 		return errors.New("Missing mandatory 'From' field")
 	}
 
-	q.result, err = db.Query(context.Background(), q.String(), q.args...)
+	q.result, err = db.Query(context.Background(), q.String(), *q.args...)
 
 	return
 }
