@@ -34,7 +34,7 @@ func (q *SelectQuery) Error() error {
 }
 
 func (q *SelectQuery) String() string {
-	*q.args = (*q.args)[:0]
+	q.args = &[]any{}
 
 	return q.buildQuery()
 }
