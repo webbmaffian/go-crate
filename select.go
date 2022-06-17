@@ -69,7 +69,7 @@ func (q *SelectQuery) buildQuery() string {
 		parts = append(parts, "OFFSET "+strconv.Itoa(q.Offset))
 	}
 
-	return strings.Join(parts, "\n") + ";"
+	return strings.Join(parts, "\n")
 }
 
 func (q *SelectQuery) run() (err error) {
