@@ -26,7 +26,7 @@ func Insert(table string, src any) (err error) {
 		f := elem.Field(i)
 		fld := typ.Field(i)
 
-		if _, computed := fld.Tag.Lookup("computed"); computed {
+		if fld.Tag.Get("db") == "-" {
 			continue
 		}
 

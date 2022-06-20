@@ -154,6 +154,11 @@ func Select[T any](dest *[]T, q SelectQuery) (err error) {
 	for i := 0; i < numFields; i++ {
 		f := elem.Field(i)
 		fld := typ.Field(i)
+
+		if fld.Tag.Get("db") == "-" {
+			continue
+		}
+
 		col, ok := fld.Tag.Lookup("json")
 
 		if !ok {
@@ -207,6 +212,11 @@ func SelectIntoJsonStream[T any](w io.Writer, destStruct T, q SelectQuery) (err 
 	for i := 0; i < numFields; i++ {
 		f := elem.Field(i)
 		fld := typ.Field(i)
+
+		if fld.Tag.Get("db") == "-" {
+			continue
+		}
+
 		col, ok := fld.Tag.Lookup("json")
 
 		if !ok {
