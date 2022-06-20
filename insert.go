@@ -20,17 +20,25 @@ func Insert(table string, src any) (err error) {
 	placeholders := make([]string, 0, numFields)
 	args := make([]any, 0, numFields)
 
+	idx := 0
+
 	for i := 0; i < numFields; i++ {
 		f := elem.Field(i)
 		fld := typ.Field(i)
+
+		if _, computed := fld.Tag.Lookup("computed"); computed {
+			continue
+		}
+
 		col, ok := fld.Tag.Lookup("json")
 
 		if !ok {
 			col = fld.Name
 		}
 
+		idx++
 		columns = append(columns, col)
-		placeholders = append(placeholders, "$"+strconv.Itoa(i+1))
+		placeholders = append(placeholders, "$"+strconv.Itoa(idx))
 		val := f.Interface()
 		args = append(args, val)
 	}

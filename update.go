@@ -38,6 +38,10 @@ func Update(table string, src any, condition Condition, columns ...string) (err 
 				continue
 			}
 
+			if _, computed := fld.Tag.Lookup("computed"); computed {
+				continue
+			}
+
 			idx++
 			fields = append(fields, col+" = $"+strconv.Itoa(idx))
 			args = append(args, f.Interface())
