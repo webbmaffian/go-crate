@@ -2,12 +2,15 @@ package crate
 
 import (
 	"context"
+	"errors"
 	"reflect"
 	"strconv"
 	"strings"
+
+	"golang.org/x/exp/slices"
 )
 
-func Insert(table string, src any) (err error) {
+func Insert(table string, src any, onConflict ...OnConflictUpdate) (err error) {
 	elem := reflect.ValueOf(src)
 
 	if elem.Kind() == reflect.Pointer {
@@ -43,7 +46,21 @@ func Insert(table string, src any) (err error) {
 		args = append(args, val)
 	}
 
-	_, err = db.Exec(context.Background(), "INSERT INTO "+table+" ("+strings.Join(columns, ", ")+") VALUES ("+strings.Join(placeholders, ", ")+")", args...)
+	q := "INSERT INTO " + table + " (" + strings.Join(columns, ", ") + ") VALUES (" + strings.Join(placeholders, ", ") + ")"
+
+	if len(onConflict) > 0 {
+		var str string
+
+		str, err = onConflict[0].run(columns, placeholders)
+
+		if err != nil {
+			return
+		}
+
+		q += " " + str
+	}
+
+	_, err = db.Exec(context.Background(), q, args...)
 
 	return
 }
@@ -87,6 +104,32 @@ func BulkInsert(table string, columns []string, insert func() []any) (err error)
 			break
 		}
 	}
+
+	return
+}
+
+type OnConflictUpdate []string
+
+func (conflictingColumns OnConflictUpdate) run(columns []string, placeholders []string) (str string, err error) {
+	numCols := len(columns)
+
+	if numCols != len(placeholders) {
+		err = errors.New("Length of columns and placeholders mismatch")
+	}
+
+	values := make([]string, 0, numCols)
+
+	for i, column := range columns {
+		placeholder := placeholders[i]
+
+		if !slices.Contains(conflictingColumns, column) {
+			continue
+		}
+
+		values = append(values, column+" = "+placeholder)
+	}
+
+	str = "ON CONFLICT (" + strings.Join(conflictingColumns, ", ") + ") DO UPDATE SET " + strings.Join(values, ", ")
 
 	return
 }
