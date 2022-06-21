@@ -257,8 +257,10 @@ func SelectIntoJsonStream[T any](w io.Writer, destStruct T, q SelectQuery, cb ..
 			return
 		}
 
-		if err := callback(&destStruct); err != nil {
-			continue
+		if callback != nil {
+			if err := callback(&destStruct); err != nil {
+				continue
+			}
 		}
 
 		if i != 0 {
