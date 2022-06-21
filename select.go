@@ -195,8 +195,13 @@ func Select[T any](dest *[]T, q SelectQuery) (err error) {
 	return
 }
 
-func SelectIntoJsonStream[T any](w io.Writer, destStruct T, q SelectQuery) (err error) {
+func SelectIntoJsonStream[T any](w io.Writer, destStruct T, q SelectQuery, cb ...func(*T) error) (err error) {
 	var selectAll bool
+	var callback func(*T) error
+
+	if len(cb) > 0 {
+		callback = cb[0]
+	}
 
 	val := reflect.ValueOf(&destStruct)
 	elem := val.Elem()
@@ -250,6 +255,10 @@ func SelectIntoJsonStream[T any](w io.Writer, destStruct T, q SelectQuery) (err 
 
 		if err != nil {
 			return
+		}
+
+		if err := callback(&destStruct); err != nil {
+			continue
 		}
 
 		if i != 0 {
