@@ -122,7 +122,7 @@ func (conflictingColumns OnConflictUpdate) run(columns []string, placeholders []
 	for i, column := range columns {
 		placeholder := placeholders[i]
 
-		if !slices.Contains(conflictingColumns, column) {
+		if slices.Contains(conflictingColumns, column) {
 			continue
 		}
 
