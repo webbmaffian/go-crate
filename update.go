@@ -26,6 +26,11 @@ func Update(table string, src any, condition Condition, columns ...string) (err 
 
 	for i := 0; i < numFields; i++ {
 		f := elem.Field(i)
+
+		if !f.CanInterface() {
+			continue
+		}
+
 		fld := typ.Field(i)
 		col, ok := fld.Tag.Lookup("json")
 
@@ -34,11 +39,7 @@ func Update(table string, src any, condition Condition, columns ...string) (err 
 		}
 
 		if allColumns || slices.Contains(columns, col) {
-			if fld.Tag.Get("db") == "primary" {
-				continue
-			}
-
-			if fld.Tag.Get("db") == "-" {
+			if fld.Tag.Get("db") == "primary" || fld.Tag.Get("db") == "-" {
 				continue
 			}
 

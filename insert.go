@@ -29,7 +29,7 @@ func Insert(table string, src any, onConflict ...OnConflictUpdate) (err error) {
 		f := elem.Field(i)
 		fld := typ.Field(i)
 
-		if fld.Tag.Get("db") == "-" {
+		if !f.CanInterface() || fld.Tag.Get("db") == "-" {
 			continue
 		}
 
