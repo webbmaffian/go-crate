@@ -309,7 +309,7 @@ func SelectIntoArbitaryJsonStream(w io.Writer, q SelectQuery, cb ...func(*map[st
 	var i int
 	var b []byte
 	var values []any
-	cols := make([]string, len(q.Select))
+	cols := make([]string, 0, len(q.Select))
 	m := map[string]any{}
 
 	for _, col := range q.Select {
