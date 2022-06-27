@@ -10,7 +10,6 @@ import (
 	"strings"
 
 	"github.com/jackc/pgx/v4"
-	"golang.org/x/exp/slices"
 )
 
 type SelectQuery struct {
@@ -169,7 +168,7 @@ func Select[T any](dest *[]T, q SelectQuery) (err error) {
 			q.Select = append(q.Select, col)
 		}
 
-		if selectAll || slices.Contains(q.Select, col) {
+		if selectAll || containsSuffix(q.Select, col, "."+col, " "+col) {
 			destProps = append(destProps, f.Addr().Interface())
 		}
 	}
@@ -232,7 +231,7 @@ func SelectIntoJsonStream[T any](w io.Writer, destStruct T, q SelectQuery, cb ..
 			q.Select = append(q.Select, col)
 		}
 
-		if selectAll || slices.Contains(q.Select, col) {
+		if selectAll || containsSuffix(q.Select, col, "."+col, " "+col) {
 			destProps = append(destProps, f.Addr().Interface())
 		}
 	}
