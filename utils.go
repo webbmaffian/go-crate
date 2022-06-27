@@ -1,6 +1,8 @@
 package crate
 
-import "strings"
+import (
+	"strings"
+)
 
 func containsSuffix(slice []string, whole string, suffixes ...string) bool {
 	for _, str := range slice {

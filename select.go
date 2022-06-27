@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io"
 	"reflect"
 	"strconv"
@@ -233,6 +234,8 @@ func SelectIntoJsonStream[T any](w io.Writer, destStruct T, q SelectQuery, cb ..
 
 		if selectAll || containsSuffix(q.Select, col, "."+col, " "+col) {
 			destProps = append(destProps, f.Addr().Interface())
+		} else {
+			fmt.Println("Missing:", col)
 		}
 	}
 
@@ -269,6 +272,69 @@ func SelectIntoJsonStream[T any](w io.Writer, destStruct T, q SelectQuery, cb ..
 		i++
 
 		b, err = json.Marshal(destStruct)
+
+		if err != nil {
+			return
+		}
+
+		_, err = w.Write(b)
+
+		if err != nil {
+			return
+		}
+	}
+
+	w.Write([]byte("]"))
+
+	return
+}
+
+func SelectIntoArbitaryJsonStream(w io.Writer, q SelectQuery, cb ...func(*map[string]any) error) (err error) {
+	var callback func(*map[string]any) error
+
+	if len(cb) > 0 {
+		callback = cb[0]
+	}
+
+	err = q.run()
+
+	if err != nil {
+		return
+	}
+
+	defer q.Close()
+
+	w.Write([]byte("["))
+
+	var i int
+	var b []byte
+	var values []any
+	m := map[string]any{}
+
+	for q.Next() {
+		values, err = q.result.Values()
+
+		if err != nil {
+			return
+		}
+
+		for i, col := range q.Select {
+			m[col] = values[i]
+		}
+
+		if callback != nil {
+			if err := callback(&m); err != nil {
+				continue
+			}
+		}
+
+		if i != 0 {
+			w.Write([]byte(","))
+		}
+
+		i++
+
+		b, err = json.Marshal(m)
 
 		if err != nil {
 			return
