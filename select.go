@@ -29,6 +29,11 @@ type SelectQuery struct {
 	error  error
 }
 
+type SelectOptions[T any] struct {
+	BeforeMarshal func(*T) error
+	AfterMarshal  func(*T) error
+}
+
 func (q *SelectQuery) Error() error {
 	return q.error
 }
@@ -195,12 +200,12 @@ func Select[T any](dest *[]T, q SelectQuery) (err error) {
 	return
 }
 
-func SelectIntoJsonStream[T any](w io.Writer, destStruct T, q SelectQuery, cb ...func(*T) error) (err error) {
+func SelectIntoJsonStream[T any](w io.Writer, destStruct T, q SelectQuery, options ...SelectOptions[T]) (err error) {
 	var selectAll bool
-	var callback func(*T) error
+	var opt SelectOptions[T]
 
-	if len(cb) > 0 {
-		callback = cb[0]
+	if len(options) > 0 {
+		opt = options[0]
 	}
 
 	val := reflect.ValueOf(&destStruct)
@@ -259,8 +264,8 @@ func SelectIntoJsonStream[T any](w io.Writer, destStruct T, q SelectQuery, cb ..
 			return
 		}
 
-		if callback != nil {
-			if err := callback(&destStruct); err != nil {
+		if opt.BeforeMarshal != nil {
+			if err := opt.BeforeMarshal(&destStruct); err != nil {
 				continue
 			}
 		}
@@ -282,6 +287,10 @@ func SelectIntoJsonStream[T any](w io.Writer, destStruct T, q SelectQuery, cb ..
 		if err != nil {
 			return
 		}
+
+		if opt.AfterMarshal != nil {
+			opt.AfterMarshal(&destStruct)
+		}
 	}
 
 	w.Write([]byte("]"))
@@ -289,11 +298,11 @@ func SelectIntoJsonStream[T any](w io.Writer, destStruct T, q SelectQuery, cb ..
 	return
 }
 
-func SelectIntoArbitaryJsonStream(w io.Writer, q SelectQuery, cb ...func(*map[string]any) error) (err error) {
-	var callback func(*map[string]any) error
+func SelectIntoArbitaryJsonStream(w io.Writer, q SelectQuery, options ...SelectOptions[map[string]any]) (err error) {
+	var opt SelectOptions[map[string]any]
 
-	if len(cb) > 0 {
-		callback = cb[0]
+	if len(options) > 0 {
+		opt = options[0]
 	}
 
 	err = q.run()
@@ -327,8 +336,8 @@ func SelectIntoArbitaryJsonStream(w io.Writer, q SelectQuery, cb ...func(*map[st
 			m[col] = values[i]
 		}
 
-		if callback != nil {
-			if err := callback(&m); err != nil {
+		if opt.BeforeMarshal != nil {
+			if err := opt.BeforeMarshal(&m); err != nil {
 				continue
 			}
 		}
@@ -349,6 +358,10 @@ func SelectIntoArbitaryJsonStream(w io.Writer, q SelectQuery, cb ...func(*map[st
 
 		if err != nil {
 			return
+		}
+
+		if opt.AfterMarshal != nil {
+			opt.AfterMarshal(&m)
 		}
 	}
 
