@@ -13,16 +13,21 @@ import (
 	"github.com/jackc/pgx/v4"
 )
 
+type queryable interface {
+	buildQuery(*[]any) string
+}
+
 type SelectQuery struct {
-	Select  []string
-	From    string
-	Join    []Join
-	Where   Condition
-	GroupBy string
-	Having  Condition
-	OrderBy string
-	Limit   int
-	Offset  int
+	Select       []string
+	From         string
+	FromSubquery queryable
+	Join         []Join
+	Where        Condition
+	GroupBy      string
+	Having       Condition
+	OrderBy      string
+	Limit        int
+	Offset       int
 
 	result pgx.Rows
 	args   *[]any
@@ -39,15 +44,19 @@ func (q *SelectQuery) Error() error {
 }
 
 func (q *SelectQuery) String() string {
-	q.args = &[]any{}
-
-	return q.buildQuery()
+	return q.buildQuery(&[]any{})
 }
 
-func (q *SelectQuery) buildQuery() string {
+func (q *SelectQuery) buildQuery(args *[]any) string {
+	q.args = args
 	parts := make([]string, 0, 8)
 	parts = append(parts, "SELECT "+strings.Join(q.Select, ", "))
-	parts = append(parts, "FROM "+q.From)
+
+	if q.FromSubquery != nil {
+		parts = append(parts, "FROM ("+q.FromSubquery.buildQuery(q.args)+")")
+	} else {
+		parts = append(parts, "FROM "+q.From)
+	}
 
 	if q.Join != nil {
 		for _, join := range q.Join {
