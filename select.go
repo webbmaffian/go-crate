@@ -53,7 +53,7 @@ func (q *SelectQuery) buildQuery(args *[]any) string {
 	parts = append(parts, "SELECT "+strings.Join(q.Select, ", "))
 
 	if q.FromSubquery != nil {
-		parts = append(parts, "FROM ("+q.FromSubquery.buildQuery(q.args)+") AS data")
+		parts = append(parts, "FROM ("+q.FromSubquery.buildQuery(q.args)+") AS subquery")
 	} else {
 		parts = append(parts, "FROM "+q.From)
 	}
