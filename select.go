@@ -92,7 +92,7 @@ func (q *SelectQuery) buildQuery(args *[]any) string {
 }
 
 func (q *SelectQuery) run() (err error) {
-	if q.From == "" {
+	if q.From == "" && q.FromSubquery == nil {
 		return errors.New("Missing mandatory 'From' field")
 	}
 
