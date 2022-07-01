@@ -33,11 +33,7 @@ func Insert(table string, src any, onConflict ...OnConflictUpdate) (err error) {
 			continue
 		}
 
-		col, ok := fld.Tag.Lookup("json")
-
-		if !ok {
-			col = fld.Name
-		}
+		col := fieldName(fld)
 
 		idx++
 		columns = append(columns, col)

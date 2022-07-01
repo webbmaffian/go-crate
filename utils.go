@@ -1,6 +1,7 @@
 package crate
 
 import (
+	"reflect"
 	"regexp"
 	"strings"
 )
@@ -29,4 +30,12 @@ func containsSuffix(slice []string, whole string, suffixes ...string) bool {
 	}
 
 	return false
+}
+
+func fieldName(fld reflect.StructField) string {
+	if col, ok := fld.Tag.Lookup("json"); ok {
+		return strings.Split(col, ",")[0]
+	}
+
+	return fld.Name
 }

@@ -173,11 +173,7 @@ func Select[T any](dest *[]T, q SelectQuery) (err error) {
 			continue
 		}
 
-		col, ok := fld.Tag.Lookup("json")
-
-		if !ok {
-			col = fld.Name
-		}
+		col := fieldName(fld)
 
 		if selectAll {
 			q.Select = append(q.Select, col)
@@ -236,11 +232,7 @@ func SelectIntoJsonStream[T any](w io.Writer, destStruct T, q SelectQuery, optio
 			continue
 		}
 
-		col, ok := fld.Tag.Lookup("json")
-
-		if !ok {
-			col = fld.Name
-		}
+		col := fieldName(fld)
 
 		if selectAll {
 			q.Select = append(q.Select, col)

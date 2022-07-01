@@ -32,11 +32,7 @@ func Update(table string, src any, condition Condition, columns ...string) (err 
 		}
 
 		fld := typ.Field(i)
-		col, ok := fld.Tag.Lookup("json")
-
-		if !ok {
-			col = fld.Name
-		}
+		col := fieldName(fld)
 
 		if allColumns || slices.Contains(columns, col) {
 			if fld.Tag.Get("db") == "primary" || fld.Tag.Get("db") == "-" {
