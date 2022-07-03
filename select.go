@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"io"
 	"reflect"
 	"strconv"
@@ -159,10 +158,14 @@ func Select[T any](dest *[]T, q SelectQuery) (err error) {
 	typ := elem.Type()
 	numFields := elem.NumField()
 	destProps := make([]any, 0, numFields)
+	selectedFields := make([]string, len(q.Select))
 
 	if len(q.Select) == 0 {
 		selectAll = true
 		q.Select = make([]string, 0, numFields)
+	} else {
+		copy(selectedFields, q.Select)
+		q.Select = q.Select[:0]
 	}
 
 	for i := 0; i < numFields; i++ {
@@ -173,14 +176,10 @@ func Select[T any](dest *[]T, q SelectQuery) (err error) {
 		}
 
 		fld := typ.Field(i)
-
 		col := fieldName(fld)
 
-		if selectAll {
+		if selectAll || containsSuffix(selectedFields, col, "."+col, " "+col) {
 			q.Select = append(q.Select, col)
-		}
-
-		if selectAll || containsSuffix(q.Select, col, "."+col, " "+col) {
 			destProps = append(destProps, f.Addr().Interface())
 		}
 	}
@@ -241,8 +240,6 @@ func SelectIntoJsonStream[T any](w io.Writer, destStruct T, q SelectQuery, optio
 
 		if selectAll || containsSuffix(q.Select, col, "."+col, " "+col) {
 			destProps = append(destProps, f.Addr().Interface())
-		} else {
-			fmt.Println("Missing:", col)
 		}
 	}
 
