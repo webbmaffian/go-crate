@@ -70,6 +70,7 @@ func InsertMultiple(table string, columns []string, rows [][]any, onConflict ...
 
 	numColumns := len(rows[0])
 	placeholders := make([]string, numColumns)
+	values := make([]any, 0, numRows*numColumns)
 	idx := 0
 	q := "INSERT INTO " + table + " (" + strings.Join(columns, ", ") + ") VALUES "
 	first := true
@@ -89,17 +90,12 @@ func InsertMultiple(table string, columns []string, rows [][]any, onConflict ...
 		}
 
 		q += "(" + strings.Join(placeholders, ", ") + ")"
+		values = append(values, row...)
 
 		first = false
 	}
 
-	for _, row := range rows {
-		_, err = db.Exec(context.Background(), q, row...)
-
-		if err != nil {
-			return
-		}
-	}
+	_, err = db.Exec(context.Background(), q, values...)
 
 	return
 }
