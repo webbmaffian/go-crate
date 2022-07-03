@@ -61,6 +61,49 @@ func Insert(table string, src any, onConflict ...OnConflictUpdate) (err error) {
 	return
 }
 
+func InsertMultiple(table string, columns []string, rows [][]any, onConflict ...OnConflictUpdate) (err error) {
+	numRows := len(rows)
+
+	if numRows == 0 {
+		return errors.New("No rows to insert")
+	}
+
+	numColumns := len(rows[0])
+	placeholders := make([]string, numColumns)
+	idx := 0
+	q := "INSERT INTO " + table + " (" + strings.Join(columns, ", ") + ") VALUES "
+	first := true
+
+	for _, row := range rows {
+		if len(row) != numColumns {
+			return errors.New("Invalid number of columns")
+		}
+
+		for i := range placeholders {
+			idx++
+			placeholders[i] = "$" + strconv.Itoa(idx)
+		}
+
+		if !first {
+			q += ", "
+		}
+
+		q += "(" + strings.Join(placeholders, ", ") + ")"
+
+		first = false
+	}
+
+	for _, row := range rows {
+		_, err = db.Exec(context.Background(), q, row...)
+
+		if err != nil {
+			return
+		}
+	}
+
+	return
+}
+
 func BulkInsert(table string, columns []string, insert func() []any) (err error) {
 	ctx := context.Background()
 	poolConn, err := db.Acquire(ctx)
@@ -115,14 +158,12 @@ func (conflictingColumns OnConflictUpdate) run(columns []string, placeholders []
 
 	values := make([]string, 0, numCols)
 
-	for i, column := range columns {
-		placeholder := placeholders[i]
-
+	for _, column := range columns {
 		if slices.Contains(conflictingColumns, column) {
 			continue
 		}
 
-		values = append(values, column+" = "+placeholder)
+		values = append(values, column+" = excluded."+column)
 	}
 
 	str = "ON CONFLICT (" + strings.Join(conflictingColumns, ", ") + ") DO UPDATE SET " + strings.Join(values, ", ")
