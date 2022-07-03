@@ -169,10 +169,6 @@ func Select[T any](dest *[]T, q SelectQuery) (err error) {
 		f := elem.Field(i)
 		fld := typ.Field(i)
 
-		if fld.Tag.Get("db") == "-" {
-			continue
-		}
-
 		col := fieldName(fld)
 
 		if selectAll {
@@ -228,7 +224,7 @@ func SelectIntoJsonStream[T any](w io.Writer, destStruct T, q SelectQuery, optio
 		f := elem.Field(i)
 		fld := typ.Field(i)
 
-		if !f.CanInterface() || fld.Tag.Get("db") == "-" {
+		if !f.CanInterface() {
 			continue
 		}
 
