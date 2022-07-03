@@ -167,6 +167,11 @@ func Select[T any](dest *[]T, q SelectQuery) (err error) {
 
 	for i := 0; i < numFields; i++ {
 		f := elem.Field(i)
+
+		if !f.CanInterface() {
+			continue
+		}
+
 		fld := typ.Field(i)
 
 		col := fieldName(fld)
