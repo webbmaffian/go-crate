@@ -117,7 +117,8 @@ func (c *In) run(args *[]any) (s string) {
 	return
 }
 
-func RawParams(str string, params ...any) (r rawParams) {
+func RawParams(str string, params ...any) (r *rawParams) {
+	r = &rawParams{}
 	r.String = []byte(str)
 	r.Params = params
 
