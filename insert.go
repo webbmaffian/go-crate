@@ -95,6 +95,18 @@ func InsertMultiple(table string, columns []string, rows [][]any, onConflict ...
 		first = false
 	}
 
+	if len(onConflict) > 0 {
+		var str string
+
+		str, err = onConflict[0].run(columns, placeholders)
+
+		if err != nil {
+			return
+		}
+
+		q += " " + str
+	}
+
 	_, err = db.Exec(context.Background(), q, values...)
 
 	return
