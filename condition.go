@@ -1,6 +1,7 @@
 package crate
 
 import (
+	"bytes"
 	"strconv"
 	"strings"
 )
@@ -112,6 +113,40 @@ func (c *In) run(args *[]any) (s string) {
 		*args = append(*args, c.Value)
 		s = c.Column + " = ANY $" + strconv.Itoa(len(*args))
 	}
+
+	return
+}
+
+func RawParams(str string, params ...any) (r rawParams) {
+	r.String = []byte(str)
+	r.Params = params
+
+	return
+}
+
+type rawParams struct {
+	String []byte
+	Params []any
+}
+
+func (c *rawParams) run(args *[]any) (str string) {
+	var prev int
+
+	for _, param := range c.Params {
+		cur := bytes.IndexByte(c.String[prev:], '?')
+
+		if cur == -1 {
+			break
+		}
+
+		*args = append(*args, param)
+		str += string(c.String[prev:cur])
+		str += "$" + strconv.Itoa(len(*args))
+
+		prev = cur
+	}
+
+	str += string(c.String[prev:])
 
 	return
 }
