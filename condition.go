@@ -10,12 +10,6 @@ type Condition interface {
 	run(args *[]any) string
 }
 
-type Raw string
-
-func (c Raw) run(args *[]any) string {
-	return string(c)
-}
-
 type Eq struct {
 	Column string
 	Value  any
@@ -117,37 +111,43 @@ func (c *In) run(args *[]any) (s string) {
 	return
 }
 
-func RawParams(str string, params ...any) (r *rawParams) {
-	r = &rawParams{}
-	r.String = []byte(str)
+func Raw(str string, params ...any) (r *raw) {
+	r = &raw{}
+	r.String = str
 	r.Params = params
 
 	return
 }
 
-type rawParams struct {
-	String []byte
+type raw struct {
+	String string
 	Params []any
 }
 
-func (c *rawParams) run(args *[]any) (str string) {
+func (c *raw) run(args *[]any) string {
+	if len(c.Params) == 0 {
+		return c.String
+	}
+
+	var str strings.Builder
 	var prev int
+	b := []byte(c.String)
 
 	for _, param := range c.Params {
-		cur := bytes.IndexByte(c.String[prev:], '?')
+		cur := bytes.IndexByte(b[prev:], '?')
 
 		if cur == -1 {
 			break
 		}
 
 		*args = append(*args, param)
-		str += string(c.String[prev:cur])
-		str += "$" + strconv.Itoa(len(*args))
+		str.Write(b[prev:cur])
+		str.WriteString("$" + strconv.Itoa(len(*args)))
 
 		prev = cur + 1
 	}
 
-	str += string(c.String[prev:])
+	str.Write(b[prev:])
 
-	return
+	return str.String()
 }
