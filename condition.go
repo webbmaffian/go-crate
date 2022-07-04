@@ -144,7 +144,7 @@ func (c *rawParams) run(args *[]any) (str string) {
 		str += string(c.String[prev:cur])
 		str += "$" + strconv.Itoa(len(*args))
 
-		prev = cur
+		prev = cur + 1
 	}
 
 	str += string(c.String[prev:])
