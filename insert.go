@@ -2,6 +2,7 @@ package crate
 
 import (
 	"context"
+	"database/sql/driver"
 	"errors"
 	"reflect"
 	"strconv"
@@ -43,13 +44,20 @@ func Insert(table string, src any, onConflict ...OnConflictUpdate) (err error) {
 			continue
 		}
 
+		i := f.Interface()
+
+		if v, ok := i.(driver.Valuer); ok {
+			if _, err = v.Value(); err != nil {
+				continue
+			}
+		}
+
 		col := fieldName(fld)
 
 		idx++
 		columns = append(columns, col)
 		placeholders = append(placeholders, "$"+strconv.Itoa(idx))
-		val := f.Interface()
-		args = append(args, val)
+		args = append(args, i)
 	}
 
 	q := "INSERT INTO " + table + " (" + strings.Join(columns, ", ") + ") VALUES (" + strings.Join(placeholders, ", ") + ")"

@@ -2,6 +2,7 @@ package crate
 
 import (
 	"context"
+	"database/sql/driver"
 	"reflect"
 	"strconv"
 	"strings"
@@ -49,9 +50,17 @@ func Update(table string, src any, condition Condition, columns ...string) (err 
 				continue
 			}
 
+			i := f.Interface()
+
+			if v, ok := i.(driver.Valuer); ok {
+				if _, err = v.Value(); err != nil {
+					continue
+				}
+			}
+
 			idx++
 			fields = append(fields, col+" = $"+strconv.Itoa(idx))
-			args = append(args, f.Interface())
+			args = append(args, i)
 		}
 	}
 
