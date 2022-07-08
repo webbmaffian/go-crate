@@ -33,6 +33,10 @@ func containsSuffix(slice []string, whole string, suffixes ...string) bool {
 }
 
 func fieldName(fld reflect.StructField) string {
+	if col, ok := fld.Tag.Lookup("db"); ok && col != "-" && col != "primary" {
+		return strings.Split(col, ",")[0]
+	}
+
 	if col, ok := fld.Tag.Lookup("json"); ok {
 		return strings.Split(col, ",")[0]
 	}
