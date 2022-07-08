@@ -10,6 +10,16 @@ import (
 )
 
 func Update(table string, src any, condition Condition, columns ...string) (err error) {
+	if s, ok := src.(BeforeMutation); ok {
+		err = s.BeforeMutation(Updating)
+	} else if s, ok := src.(*BeforeMutation); ok {
+		err = (*s).BeforeMutation(Updating)
+	}
+
+	if err != nil {
+		return
+	}
+
 	elem := reflect.ValueOf(src)
 
 	if elem.Kind() == reflect.Pointer {
@@ -46,6 +56,12 @@ func Update(table string, src any, condition Condition, columns ...string) (err 
 	}
 
 	_, err = db.Exec(context.Background(), "UPDATE "+table+" SET "+strings.Join(fields, ", ")+" WHERE "+condition.run(&args), args...)
+
+	if s, ok := src.(AfterMutation); ok {
+		s.AfterMutation(Updating)
+	} else if s, ok := src.(*AfterMutation); ok {
+		(*s).AfterMutation(Updating)
+	}
 
 	return
 }

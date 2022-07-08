@@ -11,6 +11,16 @@ import (
 )
 
 func Insert(table string, src any, onConflict ...OnConflictUpdate) (err error) {
+	if s, ok := src.(BeforeMutation); ok {
+		err = s.BeforeMutation(Inserting)
+	} else if s, ok := src.(*BeforeMutation); ok {
+		err = (*s).BeforeMutation(Inserting)
+	}
+
+	if err != nil {
+		return
+	}
+
 	elem := reflect.ValueOf(src)
 
 	if elem.Kind() == reflect.Pointer {
@@ -57,6 +67,12 @@ func Insert(table string, src any, onConflict ...OnConflictUpdate) (err error) {
 	}
 
 	_, err = db.Exec(context.Background(), q, args...)
+
+	if s, ok := src.(AfterMutation); ok {
+		s.AfterMutation(Inserting)
+	} else if s, ok := src.(*AfterMutation); ok {
+		(*s).AfterMutation(Inserting)
+	}
 
 	return
 }
