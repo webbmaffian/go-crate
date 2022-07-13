@@ -2,12 +2,10 @@ package crate
 
 import (
 	"context"
-	"database/sql/driver"
 	"reflect"
 	"strconv"
 	"strings"
 
-	"github.com/jackc/pgtype"
 	"golang.org/x/exp/slices"
 )
 
@@ -53,23 +51,8 @@ func Update(table string, src any, condition Condition, columns ...string) (err 
 
 			i := f.Interface()
 
-			switch v := i.(type) {
-			case IsZeroer:
-				if v.IsZero() {
-					continue
-				}
-			case pgtype.Text:
-				if v.Status == pgtype.Undefined {
-					continue
-				}
-			case pgtype.Timestamptz:
-				if v.Status == pgtype.Undefined {
-					continue
-				}
-			case driver.Valuer:
-				if _, err = v.Value(); err != nil {
-					continue
-				}
+			if skipField(i) {
+				continue
 			}
 
 			idx++

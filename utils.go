@@ -1,9 +1,12 @@
 package crate
 
 import (
+	"database/sql/driver"
 	"reflect"
 	"regexp"
 	"strings"
+
+	"github.com/jackc/pgtype"
 )
 
 var fieldRegex *regexp.Regexp
@@ -42,4 +45,31 @@ func fieldName(fld reflect.StructField) string {
 	}
 
 	return fld.Name
+}
+
+func skipField(i any) bool {
+	switch v := i.(type) {
+	case IsZeroer:
+		if v.IsZero() {
+			return true
+		}
+	case pgtype.Text:
+		if v.Status == pgtype.Undefined {
+			return true
+		}
+	case pgtype.TextArray:
+		if v.Status == pgtype.Undefined {
+			return true
+		}
+	case pgtype.Timestamptz:
+		if v.Status == pgtype.Undefined {
+			return true
+		}
+	case driver.Valuer:
+		if _, err := v.Value(); err != nil {
+			return true
+		}
+	}
+
+	return false
 }
