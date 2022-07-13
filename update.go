@@ -54,6 +54,10 @@ func Update(table string, src any, condition Condition, columns ...string) (err 
 			i := f.Interface()
 
 			switch v := i.(type) {
+			case IsZeroer:
+				if v.IsZero() {
+					continue
+				}
 			case pgtype.Text:
 				if v.Status == pgtype.Undefined {
 					continue

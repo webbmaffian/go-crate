@@ -14,3 +14,7 @@ type BeforeMutation interface {
 type AfterMutation interface {
 	AfterMutation(MutationType)
 }
+
+type IsZeroer interface {
+	IsZero() bool
+}
