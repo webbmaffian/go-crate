@@ -7,6 +7,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/jackc/pgtype"
 	"golang.org/x/exp/slices"
 )
 
@@ -52,7 +53,16 @@ func Update(table string, src any, condition Condition, columns ...string) (err 
 
 			i := f.Interface()
 
-			if v, ok := i.(driver.Valuer); ok {
+			switch v := i.(type) {
+			case pgtype.Text:
+				if v.Status == pgtype.Undefined {
+					continue
+				}
+			case pgtype.Timestamptz:
+				if v.Status == pgtype.Undefined {
+					continue
+				}
+			case driver.Valuer:
 				if _, err = v.Value(); err != nil {
 					continue
 				}
