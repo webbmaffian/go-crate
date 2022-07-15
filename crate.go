@@ -1,19 +1,40 @@
 package crate
 
 import (
+	"context"
+	"errors"
+
 	"github.com/jackc/pgtype"
 	"github.com/jackc/pgx/v4"
 	"github.com/jackc/pgx/v4/pgxpool"
 )
 
-var db *pgxpool.Pool
+func NewCrate(config *pgxpool.Config) (c *Crate, err error) {
+	if config == nil {
+		err = errors.New("Missing config")
+		return
+	}
 
-func SetPool(pool *pgxpool.Pool) {
-	db = pool
+	// afterConnect := config.AfterConnect
+	config.AfterConnect = func(ctx context.Context, conn *pgx.Conn) error {
+		registerDataTypes(conn)
+
+		return nil
+		// return afterConnect(ctx, conn)
+	}
+
+	c = &Crate{}
+	c.pool, err = pgxpool.ConnectConfig(context.Background(), config)
+
+	return
+}
+
+type Crate struct {
+	pool *pgxpool.Pool
 }
 
 // Register "JSON Array" (OID 199) type
-func RegisterJSONArrayType(conn *pgx.Conn) {
+func registerDataTypes(conn *pgx.Conn) {
 	conn.ConnInfo().RegisterDataType(pgtype.DataType{
 		Value: pgtype.NewArrayType("__json", pgtype.JSONOID, func() pgtype.ValueTranscoder { return &pgtype.JSON{} }),
 		Name:  "__json",

@@ -2,59 +2,49 @@ package crate
 
 import (
 	"context"
-	"errors"
 	"reflect"
 	"strconv"
 	"strings"
-
-	"golang.org/x/exp/slices"
 )
 
-func Insert(table string, src any, onConflict ...OnConflictUpdate) (err error) {
-	if s, ok := src.(BeforeMutation); ok {
-		err = s.BeforeMutation(Inserting)
-	} else if s, ok := src.(*BeforeMutation); ok {
-		err = (*s).BeforeMutation(Inserting)
+func (db *Crate) Insert(table string, src any, onConflict ...OnConflictUpdate) (err error) {
+	var columns []string
+	var placeholders []string
+	var args []any
+
+	switch v := src.(type) {
+
+	case map[string]any:
+		columns, placeholders, args, err = insertFromMap(v)
+
+	case *map[string]any:
+		columns, placeholders, args, err = insertFromMap(*v)
+
+	case BeforeMutation:
+		err = v.BeforeMutation(Updating)
+
+		if err != nil {
+			return
+		}
+
+		columns, placeholders, args, err = insertFromStruct(src)
+
+	case *BeforeMutation:
+		err = (*v).BeforeMutation(Updating)
+
+		if err != nil {
+			return
+		}
+
+		columns, placeholders, args, err = insertFromStruct(src)
+
+	default:
+		columns, placeholders, args, err = insertFromStruct(src)
+
 	}
 
 	if err != nil {
 		return
-	}
-
-	elem := reflect.ValueOf(src)
-
-	if elem.Kind() == reflect.Pointer {
-		elem = elem.Elem()
-	}
-
-	typ := elem.Type()
-	numFields := elem.NumField()
-	columns := make([]string, 0, numFields)
-	placeholders := make([]string, 0, numFields)
-	args := make([]any, 0, numFields)
-
-	idx := 0
-
-	for i := 0; i < numFields; i++ {
-		f := elem.Field(i)
-		fld := typ.Field(i)
-
-		if !f.CanInterface() || fld.Tag.Get("db") == "-" {
-			continue
-		}
-
-		i := f.Interface()
-
-		if skipField(i) {
-			continue
-		}
-
-		col := fieldName(fld)
-
-		idx++
-		columns = append(columns, col)
-		placeholders = append(placeholders, "$"+strconv.Itoa(idx))
-		args = append(args, i)
 	}
 
 	q := "INSERT INTO " + table + " (" + strings.Join(columns, ", ") + ") VALUES (" + strings.Join(placeholders, ", ") + ")"
@@ -71,7 +61,7 @@ func Insert(table string, src any, onConflict ...OnConflictUpdate) (err error) {
 		q += " " + str
 	}
 
-	_, err = db.Exec(context.Background(), q, args...)
+	_, err = db.pool.Exec(context.Background(), q, args...)
 
 	if s, ok := src.(AfterMutation); ok {
 		s.AfterMutation(Inserting)
@@ -82,120 +72,59 @@ func Insert(table string, src any, onConflict ...OnConflictUpdate) (err error) {
 	return
 }
 
-func InsertMultiple(table string, columns []string, rows [][]any, onConflict ...OnConflictUpdate) (err error) {
-	numRows := len(rows)
+func insertFromMap(src map[string]any) (columns []string, placeholders []string, args []any, err error) {
+	numFields := len(src)
+	columns = make([]string, numFields)
+	placeholders = make([]string, numFields)
+	args = make([]any, numFields)
 
-	if numRows == 0 {
-		return errors.New("No rows to insert")
-	}
+	i := 0
 
-	numColumns := len(rows[0])
-	placeholders := make([]string, numColumns)
-	values := make([]any, 0, numRows*numColumns)
-	idx := 0
-	q := "INSERT INTO " + table + " (" + strings.Join(columns, ", ") + ") VALUES "
-	first := true
-
-	for _, row := range rows {
-		if len(row) != numColumns {
-			return errors.New("Invalid number of columns")
-		}
-
-		for i := range placeholders {
-			idx++
-			placeholders[i] = "$" + strconv.Itoa(idx)
-		}
-
-		if !first {
-			q += ", "
-		}
-
-		q += "(" + strings.Join(placeholders, ", ") + ")"
-		values = append(values, row...)
-
-		first = false
-	}
-
-	if len(onConflict) > 0 {
-		var str string
-
-		str, err = onConflict[0].run(columns, placeholders)
-
-		if err != nil {
-			return
-		}
-
-		q += " " + str
-	}
-
-	_, err = db.Exec(context.Background(), q, values...)
-
-	return
-}
-
-func BulkInsert(table string, columns []string, insert func() []any) (err error) {
-	ctx := context.Background()
-	poolConn, err := db.Acquire(ctx)
-
-	if err != nil {
-		return
-	}
-
-	defer poolConn.Release()
-
-	conn := poolConn.Conn()
-	numColumns := len(columns)
-	placeholders := make([]string, 0, numColumns)
-
-	for i := 0; i < numColumns; i++ {
-		placeholders = append(placeholders, "$"+strconv.Itoa(i+1))
-	}
-
-	sd, err := conn.Prepare(ctx, "stmt_insert_"+table, "INSERT INTO "+table+" ("+strings.Join(columns, ", ")+") VALUES ("+strings.Join(placeholders, ", ")+")")
-
-	if err != nil {
-		return
-	}
-
-	defer conn.Deallocate(ctx, sd.Name)
-
-	for {
-		values := insert()
-
-		if values == nil {
-			break
-		}
-
-		_, err = conn.Exec(ctx, sd.Name, values...)
-
-		if err != nil {
-			break
-		}
+	for k, v := range src {
+		columns[i] = k
+		placeholders[i] = "$" + strconv.Itoa(i+1)
+		args[i] = v
+		i++
 	}
 
 	return
 }
 
-type OnConflictUpdate []string
+func insertFromStruct(src any) (columns []string, placeholders []string, args []any, err error) {
+	elem := reflect.ValueOf(src)
 
-func (conflictingColumns OnConflictUpdate) run(columns []string, placeholders []string) (str string, err error) {
-	numCols := len(columns)
-
-	if numCols != len(placeholders) {
-		err = errors.New("Length of columns and placeholders mismatch")
+	if elem.Kind() == reflect.Pointer {
+		elem = elem.Elem()
 	}
 
-	values := make([]string, 0, numCols)
+	typ := elem.Type()
+	numFields := elem.NumField()
+	columns = make([]string, numFields)
+	placeholders = make([]string, numFields)
+	args = make([]any, numFields)
+	i := 0
 
-	for _, column := range columns {
-		if slices.Contains(conflictingColumns, column) {
+	for idx := 0; idx < numFields; idx++ {
+		fld := typ.Field(idx)
+		val := elem.Field(idx)
+
+		if !val.CanInterface() || fld.Tag.Get("db") == "-" {
 			continue
 		}
 
-		values = append(values, column+" = excluded."+column)
-	}
+		v := val.Interface()
 
-	str = "ON CONFLICT (" + strings.Join(conflictingColumns, ", ") + ") DO UPDATE SET " + strings.Join(values, ", ")
+		if skipField(v) {
+			continue
+		}
+
+		col := fieldName(fld)
+
+		columns[i] = col
+		placeholders[i] = "$" + strconv.Itoa(i+1)
+		args[i] = v
+		i++
+	}
 
 	return
 }
