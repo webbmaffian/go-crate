@@ -19,8 +19,11 @@ func NewCrate(config *pgxpool.Config) (c *Crate, err error) {
 	config.AfterConnect = func(ctx context.Context, conn *pgx.Conn) error {
 		registerDataTypes(conn)
 
-		// return nil
-		return afterConnect(ctx, conn)
+		if afterConnect != nil {
+			return afterConnect(ctx, conn)
+		}
+
+		return nil
 	}
 
 	c = &Crate{}
