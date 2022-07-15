@@ -9,15 +9,15 @@ import (
 
 func (db *Crate) Update(table string, src any, condition Condition) (err error) {
 	var fields []string
-	var args []any
+	args := make([]any, 0, 10)
 
 	switch v := src.(type) {
 
 	case map[string]any:
-		fields, args, err = updateFromMap(v)
+		fields, err = updateFromMap(v, &args)
 
 	case *map[string]any:
-		fields, args, err = updateFromMap(*v)
+		fields, err = updateFromMap(*v, &args)
 
 	case BeforeMutation:
 		err = v.BeforeMutation(Updating)
@@ -26,7 +26,7 @@ func (db *Crate) Update(table string, src any, condition Condition) (err error) 
 			return
 		}
 
-		fields, args, err = updateFromStruct(src)
+		fields, err = updateFromStruct(src, &args)
 
 	case *BeforeMutation:
 		err = (*v).BeforeMutation(Updating)
@@ -35,10 +35,10 @@ func (db *Crate) Update(table string, src any, condition Condition) (err error) 
 			return
 		}
 
-		fields, args, err = updateFromStruct(src)
+		fields, err = updateFromStruct(src, &args)
 
 	default:
-		fields, args, err = updateFromStruct(src)
+		fields, err = updateFromStruct(src, &args)
 	}
 
 	if err != nil {
@@ -65,23 +65,22 @@ func (db *Crate) Update(table string, src any, condition Condition) (err error) 
 	return
 }
 
-func updateFromMap(src map[string]any) (fields []string, args []any, err error) {
+func updateFromMap(src map[string]any, args *[]any) (fields []string, err error) {
 	numFields := len(src)
 	fields = make([]string, numFields)
-	args = make([]any, numFields)
 
 	i := 0
 
 	for k, v := range src {
 		fields[i] = k + " = $" + strconv.Itoa(i+1)
-		args[i] = v
+		*args = append(*args, v)
 		i++
 	}
 
 	return
 }
 
-func updateFromStruct(src any) (fields []string, args []any, err error) {
+func updateFromStruct(src any, args *[]any) (fields []string, err error) {
 	elem := reflect.ValueOf(src)
 
 	if elem.Kind() == reflect.Pointer {
@@ -91,7 +90,6 @@ func updateFromStruct(src any) (fields []string, args []any, err error) {
 	typ := elem.Type()
 	numFields := elem.NumField()
 	fields = make([]string, numFields)
-	args = make([]any, numFields)
 
 	i := 0
 
@@ -116,7 +114,7 @@ func updateFromStruct(src any) (fields []string, args []any, err error) {
 		}
 
 		fields[i] = col + " = $" + strconv.Itoa(i+1)
-		args[i] = v
+		*args = append(*args, v)
 		i++
 	}
 
