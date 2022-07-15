@@ -89,7 +89,7 @@ func updateFromStruct(src any, args *[]any) (fields []string, err error) {
 
 	typ := elem.Type()
 	numFields := elem.NumField()
-	fields = make([]string, numFields)
+	fields = make([]string, 0, numFields)
 
 	i := 0
 
@@ -113,7 +113,7 @@ func updateFromStruct(src any, args *[]any) (fields []string, err error) {
 			continue
 		}
 
-		fields[i] = col + " = $" + strconv.Itoa(i+1)
+		fields = append(fields, col+" = $"+strconv.Itoa(i+1))
 		*args = append(*args, v)
 		i++
 	}

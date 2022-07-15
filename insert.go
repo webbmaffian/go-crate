@@ -10,15 +10,15 @@ import (
 func (db *Crate) Insert(table string, src any, onConflict ...OnConflictUpdate) (err error) {
 	var columns []string
 	var placeholders []string
-	args := make([]any, 0, 10)
+	var args []any
 
 	switch v := src.(type) {
 
 	case map[string]any:
-		columns, placeholders, err = insertFromMap(v, &args)
+		columns, placeholders, args, err = insertFromMap(v)
 
 	case *map[string]any:
-		columns, placeholders, err = insertFromMap(*v, &args)
+		columns, placeholders, args, err = insertFromMap(*v)
 
 	case BeforeMutation:
 		err = v.BeforeMutation(Updating)
@@ -27,7 +27,7 @@ func (db *Crate) Insert(table string, src any, onConflict ...OnConflictUpdate) (
 			return
 		}
 
-		columns, placeholders, err = insertFromStruct(src, &args)
+		columns, placeholders, args, err = insertFromStruct(src)
 
 	case *BeforeMutation:
 		err = (*v).BeforeMutation(Updating)
@@ -36,10 +36,10 @@ func (db *Crate) Insert(table string, src any, onConflict ...OnConflictUpdate) (
 			return
 		}
 
-		columns, placeholders, err = insertFromStruct(src, &args)
+		columns, placeholders, args, err = insertFromStruct(src)
 
 	default:
-		columns, placeholders, err = insertFromStruct(src, &args)
+		columns, placeholders, args, err = insertFromStruct(src)
 
 	}
 
@@ -80,24 +80,25 @@ func (db *Crate) Insert(table string, src any, onConflict ...OnConflictUpdate) (
 	return
 }
 
-func insertFromMap(src map[string]any, args *[]any) (columns []string, placeholders []string, err error) {
+func insertFromMap(src map[string]any) (columns []string, placeholders []string, args []any, err error) {
 	numFields := len(src)
 	columns = make([]string, numFields)
 	placeholders = make([]string, numFields)
+	args = make([]any, numFields)
 
 	i := 0
 
 	for k, v := range src {
 		columns[i] = k
 		placeholders[i] = "$" + strconv.Itoa(i+1)
-		*args = append(*args, v)
+		args[i] = v
 		i++
 	}
 
 	return
 }
 
-func insertFromStruct(src any, args *[]any) (columns []string, placeholders []string, err error) {
+func insertFromStruct(src any) (columns []string, placeholders []string, args []any, err error) {
 	elem := reflect.ValueOf(src)
 
 	if elem.Kind() == reflect.Pointer {
@@ -106,8 +107,9 @@ func insertFromStruct(src any, args *[]any) (columns []string, placeholders []st
 
 	typ := elem.Type()
 	numFields := elem.NumField()
-	columns = make([]string, numFields)
-	placeholders = make([]string, numFields)
+	columns = make([]string, 0, numFields)
+	placeholders = make([]string, 0, numFields)
+	args = make([]any, 0, numFields)
 	i := 0
 
 	for idx := 0; idx < numFields; idx++ {
@@ -126,9 +128,9 @@ func insertFromStruct(src any, args *[]any) (columns []string, placeholders []st
 
 		col := fieldName(fld)
 
-		columns[i] = col
-		placeholders[i] = "$" + strconv.Itoa(i+1)
-		*args = append(*args, v)
+		columns = append(columns, col)
+		placeholders = append(placeholders, "$"+strconv.Itoa(i+1))
+		args = append(args, v)
 		i++
 	}
 
