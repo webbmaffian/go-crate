@@ -21,7 +21,7 @@ func (db *Crate) Insert(table string, src any, onConflict ...OnConflictUpdate) (
 		columns, placeholders, args, err = insertFromMap(*v)
 
 	case BeforeMutation:
-		err = v.BeforeMutation(Updating)
+		err = v.BeforeMutation(Inserting)
 
 		if err != nil {
 			return
@@ -30,7 +30,7 @@ func (db *Crate) Insert(table string, src any, onConflict ...OnConflictUpdate) (
 		columns, placeholders, args, err = insertFromStruct(src)
 
 	case *BeforeMutation:
-		err = (*v).BeforeMutation(Updating)
+		err = (*v).BeforeMutation(Inserting)
 
 		if err != nil {
 			return
