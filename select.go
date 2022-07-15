@@ -16,11 +16,10 @@ func (db *Crate) Select(dest any, q SelectQuery, options ...SelectOptions[map[st
 
 	switch d := dest.(type) {
 	case io.Writer:
-		return selectIntoWriter(d, q, opt, db)
+		return selectIntoWriter(d, &q, opt, db)
 
 	case *map[string]any:
 		return errors.New("Not supported yet")
-		// return selectOneIntoMap(d, q)
 	}
 
 	destPtr := reflect.ValueOf(dest)
@@ -33,15 +32,25 @@ func (db *Crate) Select(dest any, q SelectQuery, options ...SelectOptions[map[st
 
 	switch destVal.Kind() {
 	case reflect.Slice:
-		return selectIntoSlice(destPtr, q, db)
+		err = selectIntoSlice(destPtr, &q, db)
 	case reflect.Struct:
-		return selectOneIntoStruct(destPtr, q, db)
+		err = selectOneIntoStruct(destPtr, &q, db)
+	default:
+		return errors.New("Invalid destination")
 	}
 
-	return errors.New("Invalid destination")
+	if err != nil {
+		err = QueryError{
+			err:   err.Error(),
+			query: q.String(),
+			args:  *q.args,
+		}
+	}
+
+	return
 }
 
-func selectOneIntoStruct(val reflect.Value, q SelectQuery, db *Crate) (err error) {
+func selectOneIntoStruct(val reflect.Value, q *SelectQuery, db *Crate) (err error) {
 	var selectAll bool
 	elem := val.Elem()
 	typ := elem.Type()
@@ -93,7 +102,7 @@ func selectOneIntoStruct(val reflect.Value, q SelectQuery, db *Crate) (err error
 	return
 }
 
-func selectIntoSlice(dest reflect.Value, q SelectQuery, db *Crate) (err error) {
+func selectIntoSlice(dest reflect.Value, q *SelectQuery, db *Crate) (err error) {
 	var selectAll bool
 
 	destVal := dest.Elem()
@@ -149,7 +158,7 @@ func selectIntoSlice(dest reflect.Value, q SelectQuery, db *Crate) (err error) {
 	return
 }
 
-func selectIntoWriter(w io.Writer, q SelectQuery, opt SelectOptions[map[string]any], db *Crate) (err error) {
+func selectIntoWriter(w io.Writer, q *SelectQuery, opt SelectOptions[map[string]any], db *Crate) (err error) {
 	err = q.run(db)
 
 	if err != nil {

@@ -45,13 +45,20 @@ func (db *Crate) Update(table string, src any, condition Condition) (err error) 
 		return
 	}
 
-	_, err = db.pool.Exec(context.Background(), "UPDATE "+table+" SET "+strings.Join(fields, ", ")+" WHERE "+condition.run(&args), args...)
+	q := "UPDATE " + table + " SET " + strings.Join(fields, ", ") + " WHERE " + condition.run(&args)
+	_, err = db.pool.Exec(context.Background(), q, args...)
 
 	if err == nil {
 		if s, ok := src.(AfterMutation); ok {
 			s.AfterMutation(Updating)
 		} else if s, ok := src.(*AfterMutation); ok {
 			(*s).AfterMutation(Updating)
+		}
+	} else {
+		err = QueryError{
+			err:   err.Error(),
+			query: q,
+			args:  args,
 		}
 	}
 

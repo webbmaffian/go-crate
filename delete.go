@@ -6,7 +6,16 @@ import (
 
 func (c *Crate) Delete(table string, condition Condition) (err error) {
 	args := make([]any, 0)
-	_, err = c.pool.Exec(context.Background(), "DELETE FROM "+table+" WHERE "+condition.run(&args), args...)
+	q := "DELETE FROM " + table + " WHERE " + condition.run(&args)
+	_, err = c.pool.Exec(context.Background(), q, args...)
+
+	if err != nil {
+		err = QueryError{
+			err:   err.Error(),
+			query: q,
+			args:  args,
+		}
+	}
 
 	return
 }

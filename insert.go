@@ -63,10 +63,18 @@ func (db *Crate) Insert(table string, src any, onConflict ...OnConflictUpdate) (
 
 	_, err = db.pool.Exec(context.Background(), q, args...)
 
-	if s, ok := src.(AfterMutation); ok {
-		s.AfterMutation(Inserting)
-	} else if s, ok := src.(*AfterMutation); ok {
-		(*s).AfterMutation(Inserting)
+	if err == nil {
+		if s, ok := src.(AfterMutation); ok {
+			s.AfterMutation(Inserting)
+		} else if s, ok := src.(*AfterMutation); ok {
+			(*s).AfterMutation(Inserting)
+		}
+	} else {
+		err = QueryError{
+			err:   err.Error(),
+			query: q,
+			args:  args,
+		}
 	}
 
 	return
