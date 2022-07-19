@@ -16,6 +16,10 @@ type Eq struct {
 }
 
 func (c *Eq) run(args *[]any) string {
+	if c.Value == nil {
+		return c.Column + " IS NULL"
+	}
+
 	*args = append(*args, c.Value)
 	return c.Column + " = $" + strconv.Itoa(len(*args))
 }
@@ -26,6 +30,10 @@ type NotEq struct {
 }
 
 func (c *NotEq) run(args *[]any) string {
+	if c.Value == nil {
+		return c.Column + " IS NOT NULL"
+	}
+
 	*args = append(*args, c.Value)
 	return c.Column + " != $" + strconv.Itoa(len(*args))
 }
