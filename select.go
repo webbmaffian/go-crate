@@ -91,12 +91,19 @@ func selectOneIntoStruct(val reflect.Value, q *SelectQuery, db *Crate) (err erro
 
 	defer q.Close()
 
+	var found bool
+
 	for q.Next() {
+		found = true
 		err = q.Scan(destProps...)
 
 		if err != nil {
 			return
 		}
+	}
+
+	if !found {
+		err = errors.New("Row not found")
 	}
 
 	return
