@@ -14,16 +14,15 @@ type queryable interface {
 }
 
 type SelectQuery struct {
-	Select       []string
-	From         string
-	FromSubquery queryable
-	Join         []Join
-	Where        Condition
-	GroupBy      string
-	Having       Condition
-	OrderBy      string
-	Limit        int
-	Offset       int
+	Select  []string
+	From    queryable
+	Join    []Join
+	Where   Condition
+	GroupBy string
+	Having  Condition
+	OrderBy string
+	Limit   int
+	Offset  int
 
 	result pgx.Rows
 	args   *[]any
@@ -47,12 +46,7 @@ func (q *SelectQuery) buildQuery(args *[]any) string {
 	q.args = args
 	parts := make([]string, 0, 8)
 	parts = append(parts, "SELECT "+strings.Join(q.Select, ", "))
-
-	if q.FromSubquery != nil {
-		parts = append(parts, "FROM ("+q.FromSubquery.buildQuery(q.args)+") AS subquery")
-	} else {
-		parts = append(parts, "FROM "+q.From)
-	}
+	parts = append(parts, "FROM "+q.From.buildQuery(q.args))
 
 	if q.Join != nil {
 		for _, join := range q.Join {
@@ -88,10 +82,6 @@ func (q *SelectQuery) buildQuery(args *[]any) string {
 }
 
 func (q *SelectQuery) run(db *Crate) (err error) {
-	if q.From == "" && q.FromSubquery == nil {
-		return errors.New("Missing mandatory 'From' field")
-	}
-
 	q.result, err = db.pool.Query(context.Background(), q.String(), *q.args...)
 
 	return

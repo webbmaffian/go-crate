@@ -46,7 +46,7 @@ func BenchmarkSelect(B *testing.B) {
 			var dest User
 
 			err = db.Select(&dest, SelectQuery{
-				From: "users",
+				From: Table("users"),
 			})
 
 			if err != nil {
@@ -60,7 +60,7 @@ func BenchmarkSelect(B *testing.B) {
 			var dest []User
 
 			err = db.Select(&dest, SelectQuery{
-				From: "users",
+				From: Table("users"),
 			})
 
 			if err != nil {
@@ -75,7 +75,7 @@ func BenchmarkSelect(B *testing.B) {
 
 			err = db.Select(dest, SelectQuery{
 				Select: []string{"id", "status", "first_name", "last_name"},
-				From:   "users",
+				From:   Table("users"),
 			})
 
 			if err != nil {

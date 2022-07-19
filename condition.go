@@ -15,7 +15,7 @@ type Eq struct {
 	Value  any
 }
 
-func (c *Eq) run(args *[]any) string {
+func (c Eq) run(args *[]any) string {
 	if c.Value == nil {
 		return c.Column + " IS NULL"
 	}
@@ -29,7 +29,7 @@ type NotEq struct {
 	Value  any
 }
 
-func (c *NotEq) run(args *[]any) string {
+func (c NotEq) run(args *[]any) string {
 	if c.Value == nil {
 		return c.Column + " IS NOT NULL"
 	}
@@ -43,7 +43,7 @@ type Gt struct {
 	Value  any
 }
 
-func (c *Gt) run(args *[]any) string {
+func (c Gt) run(args *[]any) string {
 	*args = append(*args, c.Value)
 	return c.Column + " > $" + strconv.Itoa(len(*args))
 }
@@ -53,7 +53,7 @@ type Gte struct {
 	Value  any
 }
 
-func (c *Gte) run(args *[]any) string {
+func (c Gte) run(args *[]any) string {
 	*args = append(*args, c.Value)
 	return c.Column + " >= $" + strconv.Itoa(len(*args))
 }
@@ -63,7 +63,7 @@ type Lt struct {
 	Value  any
 }
 
-func (c *Lt) run(args *[]any) string {
+func (c Lt) run(args *[]any) string {
 	*args = append(*args, c.Value)
 	return c.Column + " < $" + strconv.Itoa(len(*args))
 }
@@ -73,17 +73,17 @@ type Lte struct {
 	Value  any
 }
 
-func (c *Lte) run(args *[]any) string {
+func (c Lte) run(args *[]any) string {
 	*args = append(*args, c.Value)
 	return c.Column + " <= $" + strconv.Itoa(len(*args))
 }
 
 type And []Condition
 
-func (c *And) run(args *[]any) string {
-	conds := make([]string, 0, len(*c))
+func (c And) run(args *[]any) string {
+	conds := make([]string, 0, len(c))
 
-	for _, cond := range *c {
+	for _, cond := range c {
 		conds = append(conds, cond.run(args))
 	}
 
@@ -92,10 +92,10 @@ func (c *And) run(args *[]any) string {
 
 type Or []Condition
 
-func (c *Or) run(args *[]any) string {
-	conds := make([]string, 0, len(*c))
+func (c Or) run(args *[]any) string {
+	conds := make([]string, 0, len(c))
 
-	for _, cond := range *c {
+	for _, cond := range c {
 		conds = append(conds, cond.run(args))
 	}
 
@@ -107,7 +107,7 @@ type In struct {
 	Value  any
 }
 
-func (c *In) run(args *[]any) (s string) {
+func (c In) run(args *[]any) (s string) {
 	switch v := c.Value.(type) {
 	case SelectQuery:
 		s = c.Column + " IN (" + v.buildQuery(args) + ")"
@@ -132,7 +132,7 @@ type raw struct {
 	Params []any
 }
 
-func (c *raw) run(args *[]any) string {
+func (c raw) run(args *[]any) string {
 	if len(c.Params) == 0 {
 		return c.String
 	}
