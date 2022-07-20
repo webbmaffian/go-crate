@@ -119,6 +119,16 @@ func (c In) run(args *[]any) (s string) {
 	return
 }
 
+type Contains struct {
+	Column string
+	Value  any
+}
+
+func (c Contains) run(args *[]any) string {
+	*args = append(*args, c.Value)
+	return "$" + strconv.Itoa(len(*args)) + " = ANY " + c.Column
+}
+
 func Raw(str string, params ...any) (r *raw) {
 	r = &raw{}
 	r.String = str
