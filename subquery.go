@@ -9,6 +9,6 @@ type SubquerySource struct {
 	query SelectQuery
 }
 
-func (t *SubquerySource) buildQuery(args *[]any) string {
+func (t SubquerySource) buildQuery(args *[]any) string {
 	return "(" + t.query.buildQuery(args) + ") AS " + t.alias
 }
