@@ -29,9 +29,9 @@ type SelectQuery struct {
 	error  error
 }
 
-type SelectOptions[T any] struct {
-	BeforeMarshal func(*T) error
-	AfterMarshal  func(*T) error
+type SelectOptions struct {
+	BeforeMarshal func(data any) error
+	AfterMarshal  func(data any) error
 }
 
 func (q *SelectQuery) Error() error {

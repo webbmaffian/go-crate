@@ -13,7 +13,7 @@ func (t TableSource) buildQuery(args *[]any) string {
 	return t.name
 }
 
-func (t TableSource) Select(dest any, q SelectQuery, options ...SelectOptions[map[string]any]) error {
+func (t TableSource) Select(dest any, q SelectQuery, options ...SelectOptions) error {
 	q.From = t
 
 	return t.db.Select(dest, q, options...)

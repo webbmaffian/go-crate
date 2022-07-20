@@ -7,8 +7,8 @@ import (
 	"reflect"
 )
 
-func (db *Crate) Select(dest any, q SelectQuery, options ...SelectOptions[map[string]any]) (err error) {
-	var opt SelectOptions[map[string]any]
+func (db *Crate) Select(dest any, q SelectQuery, options ...SelectOptions) (err error) {
+	var opt SelectOptions
 
 	if len(options) != 0 {
 		opt = options[0]
@@ -173,7 +173,7 @@ func selectIntoSlice(dest reflect.Value, q *SelectQuery, db *Crate) (err error) 
 	return
 }
 
-func selectIntoWriter(w io.Writer, q *SelectQuery, opt SelectOptions[map[string]any], db *Crate) (err error) {
+func selectIntoWriter(w io.Writer, q *SelectQuery, opt SelectOptions, db *Crate) (err error) {
 	err = q.run(db)
 
 	if err != nil {
