@@ -77,6 +77,10 @@ func selectOneIntoStruct(val reflect.Value, q *SelectQuery, db *Crate) (err erro
 		fld := typ.Field(i)
 		col := fieldName(fld)
 
+		if col == "-" {
+			continue
+		}
+
 		if selectAll || containsSuffix(selectedFields, col, "."+col, " "+col) {
 			q.Select = append(q.Select, col)
 			destProps = append(destProps, f.Addr().Interface())
@@ -137,6 +141,10 @@ func selectIntoSlice(dest reflect.Value, q *SelectQuery, db *Crate) (err error) 
 
 		fld := typ.Field(i)
 		col := fieldName(fld)
+
+		if col == "-" {
+			continue
+		}
 
 		if selectAll || containsSuffix(selectedFields, col, "."+col, " "+col) {
 			q.Select = append(q.Select, col)

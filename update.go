@@ -103,7 +103,7 @@ func updateFromStruct(src any, args *[]any) (fields []string, err error) {
 		fld := typ.Field(idx)
 		col := fieldName(fld)
 
-		if fld.Tag.Get("db") == "primary" || fld.Tag.Get("db") == "-" {
+		if fld.Tag.Get("db") == "primary" || col == "-" {
 			continue
 		}
 
