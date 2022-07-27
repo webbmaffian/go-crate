@@ -10,22 +10,21 @@ import (
 )
 
 type queryable interface {
-	buildQuery(*[]any) string
+	buildQuery(b *strings.Builder, args *[]any)
 }
 
 type SelectQuery struct {
-	Select  []string
+	Select  []any
 	From    queryable
 	Join    []Join
 	Where   Condition
-	GroupBy string
+	GroupBy []any
 	Having  Condition
-	OrderBy string
+	OrderBy orderBy
 	Limit   int
 	Offset  int
 
 	result pgx.Rows
-	args   *[]any
 	error  error
 }
 
@@ -39,50 +38,79 @@ func (q *SelectQuery) Error() error {
 }
 
 func (q *SelectQuery) String() string {
-	return q.buildQuery(&[]any{})
+	var b strings.Builder
+	q.buildQuery(&b, &[]any{})
+	return b.String()
 }
 
-func (q *SelectQuery) buildQuery(args *[]any) string {
-	q.args = args
-	parts := make([]string, 0, 8)
-	parts = append(parts, "SELECT "+strings.Join(q.Select, ", "))
-	parts = append(parts, "FROM "+q.From.buildQuery(q.args))
+func (q *SelectQuery) buildQuery(b *strings.Builder, args *[]any) {
+	b.Grow(100)
+
+	b.WriteString("SELECT ")
+	writeIdentifier(b, q.Select...)
+	b.WriteByte('\n')
+
+	b.WriteString("FROM ")
+	q.From.buildQuery(b, args)
 
 	if q.Join != nil {
 		for _, join := range q.Join {
-			parts = append(parts, join.run(q.args))
+			join.run(b, args)
+			b.WriteByte('\n')
 		}
 	}
 
 	if q.Where != nil {
-		parts = append(parts, "WHERE "+q.Where.run(q.args))
+		b.WriteString("WHERE ")
+		q.Where.run(b, args)
+		b.WriteByte('\n')
 	}
 
-	if q.GroupBy != "" {
-		parts = append(parts, "GROUP BY "+q.GroupBy)
+	if len(q.GroupBy) != 0 {
+		b.WriteString("GROUP BY ")
+		writeIdentifier(b, q.GroupBy...)
+		b.WriteByte('\n')
 	}
 
 	if q.Having != nil {
-		parts = append(parts, "HAVING "+q.Having.run(q.args))
+		b.WriteString("HAVING ")
+		q.Having.run(b, args)
+		b.WriteByte('\n')
 	}
 
-	if q.OrderBy != "" {
-		parts = append(parts, "ORDER BY "+q.OrderBy)
+	if q.OrderBy != nil {
+		b.WriteString("ORDER BY ")
+		q.OrderBy.orderBy(b)
+		b.WriteByte('\n')
 	}
 
 	if q.Limit > 0 {
-		parts = append(parts, "LIMIT "+strconv.Itoa(q.Limit))
+		b.WriteString("LIMIT ")
+		b.Write(strconv.AppendInt([]byte{}, int64(q.Limit), 10))
+		b.WriteByte('\n')
 	}
 
 	if q.Offset > 0 {
-		parts = append(parts, "OFFSET "+strconv.Itoa(q.Offset))
-	}
+		b.WriteString("OFFSET ")
 
-	return strings.Join(parts, "\n")
+		b.WriteByte('\n')
+	}
 }
 
 func (q *SelectQuery) run(db *Crate) (err error) {
-	q.result, err = db.pool.Query(context.Background(), q.String(), *q.args...)
+	var b strings.Builder
+	args := make([]any, 0, 5)
+	q.buildQuery(&b, &args)
+
+	q.result, err = db.pool.Query(context.Background(), q.String(), args...)
+
+	if err != nil {
+		err = QueryError{
+			err:   err.Error(),
+			query: q.String(),
+			args:  args,
+		}
+	}
 
 	return
 }

@@ -2,12 +2,11 @@ package crate
 
 import (
 	"bytes"
-	"strconv"
 	"strings"
 )
 
 type Condition interface {
-	run(args *[]any) string
+	run(b *strings.Builder, args *[]any)
 }
 
 type Eq struct {
@@ -15,13 +14,15 @@ type Eq struct {
 	Value  any
 }
 
-func (c Eq) run(args *[]any) string {
-	if c.Value == nil {
-		return c.Column + " IS NULL"
-	}
+func (c Eq) run(b *strings.Builder, args *[]any) {
+	b.WriteString(c.Column)
 
-	*args = append(*args, c.Value)
-	return c.Column + " = $" + strconv.Itoa(len(*args))
+	if c.Value == nil {
+		b.WriteString(" IS NULL")
+	} else {
+		b.WriteString(" = ")
+		writeParam(b, args, c.Value)
+	}
 }
 
 type NotEq struct {
@@ -29,13 +30,15 @@ type NotEq struct {
 	Value  any
 }
 
-func (c NotEq) run(args *[]any) string {
-	if c.Value == nil {
-		return c.Column + " IS NOT NULL"
-	}
+func (c NotEq) run(b *strings.Builder, args *[]any) {
+	b.WriteString(c.Column)
 
-	*args = append(*args, c.Value)
-	return c.Column + " != $" + strconv.Itoa(len(*args))
+	if c.Value == nil {
+		b.WriteString(" IS NOT NULL")
+	} else {
+		b.WriteString(" != ")
+		writeParam(b, args, c.Value)
+	}
 }
 
 type Gt struct {
@@ -43,9 +46,10 @@ type Gt struct {
 	Value  any
 }
 
-func (c Gt) run(args *[]any) string {
-	*args = append(*args, c.Value)
-	return c.Column + " > $" + strconv.Itoa(len(*args))
+func (c Gt) run(b *strings.Builder, args *[]any) {
+	b.WriteString(c.Column)
+	b.WriteString(" > ")
+	writeParam(b, args, c.Value)
 }
 
 type Gte struct {
@@ -53,9 +57,10 @@ type Gte struct {
 	Value  any
 }
 
-func (c Gte) run(args *[]any) string {
-	*args = append(*args, c.Value)
-	return c.Column + " >= $" + strconv.Itoa(len(*args))
+func (c Gte) run(b *strings.Builder, args *[]any) {
+	b.WriteString(c.Column)
+	b.WriteString(" >= ")
+	writeParam(b, args, c.Value)
 }
 
 type Lt struct {
@@ -63,9 +68,10 @@ type Lt struct {
 	Value  any
 }
 
-func (c Lt) run(args *[]any) string {
-	*args = append(*args, c.Value)
-	return c.Column + " < $" + strconv.Itoa(len(*args))
+func (c Lt) run(b *strings.Builder, args *[]any) {
+	b.WriteString(c.Column)
+	b.WriteString(" < ")
+	writeParam(b, args, c.Value)
 }
 
 type Lte struct {
@@ -73,33 +79,46 @@ type Lte struct {
 	Value  any
 }
 
-func (c Lte) run(args *[]any) string {
-	*args = append(*args, c.Value)
-	return c.Column + " <= $" + strconv.Itoa(len(*args))
+func (c Lte) run(b *strings.Builder, args *[]any) {
+	b.WriteString(c.Column)
+	b.WriteString(" <= ")
+	writeParam(b, args, c.Value)
 }
 
 type And []Condition
 
-func (c And) run(args *[]any) string {
-	conds := make([]string, 0, len(c))
-
-	for _, cond := range c {
-		conds = append(conds, cond.run(args))
+func (c And) run(b *strings.Builder, args *[]any) {
+	if len(c) == 0 {
+		return
 	}
 
-	return "(" + strings.Join(conds, " AND ") + ")"
+	b.WriteByte('(')
+	c[0].run(b, args)
+
+	for _, cond := range c[1:] {
+		b.WriteString(" AND ")
+		cond.run(b, args)
+	}
+
+	b.WriteByte(')')
 }
 
 type Or []Condition
 
-func (c Or) run(args *[]any) string {
-	conds := make([]string, 0, len(c))
-
-	for _, cond := range c {
-		conds = append(conds, cond.run(args))
+func (c Or) run(b *strings.Builder, args *[]any) {
+	if len(c) == 0 {
+		return
 	}
 
-	return "(" + strings.Join(conds, " OR ") + ")"
+	b.WriteByte('(')
+	c[0].run(b, args)
+
+	for _, cond := range c[1:] {
+		b.WriteString(" OR ")
+		cond.run(b, args)
+	}
+
+	b.WriteByte(')')
 }
 
 type In struct {
@@ -107,13 +126,21 @@ type In struct {
 	Value  any
 }
 
-func (c In) run(args *[]any) (s string) {
+func (c In) run(b *strings.Builder, args *[]any) {
+	b.WriteString(c.Column)
+
 	switch v := c.Value.(type) {
 	case SelectQuery:
-		s = c.Column + " IN (" + v.buildQuery(args) + ")"
+		b.WriteString(" IN (")
+		v.buildQuery(b, args)
+		b.WriteByte(')')
+	case SubquerySource:
+		b.WriteString(" IN (")
+		v.query.buildQuery(b, args)
+		b.WriteByte(')')
 	default:
-		*args = append(*args, c.Value)
-		s = c.Column + " = ANY $" + strconv.Itoa(len(*args))
+		b.WriteString(" = ANY ")
+		writeParam(b, args, c.Value)
 	}
 
 	return
@@ -124,9 +151,10 @@ type Contains struct {
 	Value  any
 }
 
-func (c Contains) run(args *[]any) string {
-	*args = append(*args, c.Value)
-	return "$" + strconv.Itoa(len(*args)) + " = ANY " + c.Column
+func (c Contains) run(b *strings.Builder, args *[]any) {
+	writeParam(b, args, c.Value)
+	b.WriteString(" = ANY ")
+	b.WriteString(c.Column)
 }
 
 func Raw(str string, params ...any) (r *raw) {
@@ -142,30 +170,27 @@ type raw struct {
 	Params []any
 }
 
-func (c raw) run(args *[]any) string {
+func (c raw) run(b *strings.Builder, args *[]any) {
 	if len(c.Params) == 0 {
-		return c.String
+		b.WriteString(c.String)
+		return
 	}
 
-	var str strings.Builder
 	var prev int
-	b := []byte(c.String)
+	str := []byte(c.String)
 
 	for _, param := range c.Params {
-		cur := bytes.IndexByte(b[prev:], '?')
+		cur := bytes.IndexByte(str[prev:], '?')
 
 		if cur == -1 {
 			break
 		}
 
-		*args = append(*args, param)
-		str.Write(b[prev:cur])
-		str.WriteString("$" + strconv.Itoa(len(*args)))
+		b.Write(str[prev:cur])
+		writeParam(b, args, param)
 
 		prev = cur + 1
 	}
 
-	str.Write(b[prev:])
-
-	return str.String()
+	b.Write(str[prev:])
 }

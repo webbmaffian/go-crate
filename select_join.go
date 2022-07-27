@@ -1,7 +1,9 @@
 package crate
 
+import "strings"
+
 type Join interface {
-	run(args *[]any) string
+	run(b *strings.Builder, args *[]any)
 }
 
 type InnerJoin struct {
@@ -9,24 +11,36 @@ type InnerJoin struct {
 	Condition Condition
 }
 
-func (j InnerJoin) run(args *[]any) string {
-	return "INNER JOIN " + j.Table.buildQuery(args) + " ON " + j.Condition.run(args)
+func (j InnerJoin) run(b *strings.Builder, args *[]any) {
+	b.WriteString("INNER JOIN ")
+	j.Table.buildQuery(b, args)
+	b.WriteString(" ON ")
+	j.Condition.run(b, args)
 }
 
 type OuterJoin InnerJoin
 
-func (j OuterJoin) run(args *[]any) string {
-	return "OUTER JOIN " + j.Table.buildQuery(args) + " ON " + j.Condition.run(args)
+func (j OuterJoin) run(b *strings.Builder, args *[]any) {
+	b.WriteString("OUTER JOIN ")
+	j.Table.buildQuery(b, args)
+	b.WriteString(" ON ")
+	j.Condition.run(b, args)
 }
 
 type LeftJoin InnerJoin
 
-func (j LeftJoin) run(args *[]any) string {
-	return "LEFT JOIN " + j.Table.buildQuery(args) + " ON " + j.Condition.run(args)
+func (j LeftJoin) run(b *strings.Builder, args *[]any) {
+	b.WriteString("LEFT JOIN ")
+	j.Table.buildQuery(b, args)
+	b.WriteString(" ON ")
+	j.Condition.run(b, args)
 }
 
 type RightJoin InnerJoin
 
-func (j RightJoin) run(args *[]any) string {
-	return "RIGHT JOIN " + j.Table.buildQuery(args) + " ON " + j.Condition.run(args)
+func (j RightJoin) run(b *strings.Builder, args *[]any) {
+	b.WriteString("RIGHT JOIN ")
+	j.Table.buildQuery(b, args)
+	b.WriteString(" ON ")
+	j.Condition.run(b, args)
 }

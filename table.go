@@ -1,5 +1,7 @@
 package crate
 
+import "strings"
+
 func (c *Crate) Table(name string) TableSource {
 	return TableSource{c, name}
 }
@@ -9,8 +11,8 @@ type TableSource struct {
 	name string
 }
 
-func (t TableSource) buildQuery(args *[]any) string {
-	return t.name
+func (t TableSource) buildQuery(b *strings.Builder, args *[]any) {
+	writeIdentifier(b, t.name)
 }
 
 func (t TableSource) Select(dest any, q SelectQuery, options ...SelectOptions) error {

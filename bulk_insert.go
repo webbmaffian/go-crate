@@ -3,83 +3,110 @@ package crate
 import (
 	"context"
 	"errors"
-	"strconv"
 	"strings"
 
 	"golang.org/x/exp/slices"
 )
 
 func (c *Crate) BulkInsert(table string, columns []string, rows [][]any, onConflict ...OnConflictUpdate) (err error) {
+	numColumns := len(columns)
+
+	if numColumns == 0 {
+		return errors.New("No columns to insert")
+	}
+
 	numRows := len(rows)
 
 	if numRows == 0 {
 		return errors.New("No rows to insert")
 	}
 
-	numColumns := len(rows[0])
-	placeholders := make([]string, numColumns)
-	values := make([]any, 0, numRows*numColumns)
-	idx := 0
-	q := "INSERT INTO " + table + " (" + strings.Join(columns, ", ") + ") VALUES "
-	first := true
+	var b strings.Builder
+	args := make([]any, 0, numRows*numColumns)
+	b.Grow(numColumns*16 + numColumns*4*numRows)
+
+	b.WriteString("INSERT INTO ")
+	writeIdentifier(&b, table)
+	b.WriteString(" (")
+
+	writeIdentifier(&b, columns[0])
+
+	for _, col := range columns[1:] {
+		b.WriteString(", ")
+		writeIdentifier(&b, col)
+	}
+
+	b.WriteString(") VALUES ")
+
+	firstRow := true
 
 	for _, row := range rows {
 		if len(row) != numColumns {
 			return errors.New("Invalid number of columns")
 		}
 
-		for i := range placeholders {
-			idx++
-			placeholders[i] = "$" + strconv.Itoa(idx)
+		if firstRow {
+			firstRow = false
+		} else {
+			b.WriteString(",\n")
 		}
 
-		if !first {
-			q += ", "
+		b.WriteByte('(')
+		writeParam(&b, &args, row[0])
+
+		for _, col := range row[1:] {
+			writeParam(&b, &args, col)
 		}
 
-		q += "(" + strings.Join(placeholders, ", ") + ")"
-		values = append(values, row...)
-
-		first = false
+		b.WriteByte(')')
 	}
 
 	if len(onConflict) > 0 {
-		var str string
-
-		str, err = onConflict[0].run(columns, placeholders)
-
-		if err != nil {
+		if err = onConflict[0].run(&b, columns); err != nil {
 			return
 		}
-
-		q += " " + str
 	}
 
-	_, err = c.pool.Exec(context.Background(), q, values...)
+	_, err = c.pool.Exec(context.Background(), b.String(), args...)
 
 	return
 }
 
 type OnConflictUpdate []string
 
-func (conflictingColumns OnConflictUpdate) run(columns []string, placeholders []string) (str string, err error) {
-	numCols := len(columns)
-
-	if numCols != len(placeholders) {
-		err = errors.New("Length of columns and placeholders mismatch")
+func (conflictingColumns OnConflictUpdate) run(b *strings.Builder, columns []string) (err error) {
+	if len(columns) == 0 {
+		return
 	}
 
-	values := make([]string, 0, numCols)
+	b.WriteByte('\n')
+	b.WriteString("ON CONFLICT (")
+	writeIdentifier(b, conflictingColumns[0])
+
+	for _, column := range conflictingColumns[1:] {
+		b.WriteString(", ")
+		writeIdentifier(b, column)
+	}
+
+	b.WriteString(") DO UPDATE SET ")
+
+	first := true
 
 	for _, column := range columns {
 		if slices.Contains(conflictingColumns, column) {
 			continue
 		}
 
-		values = append(values, column+" = excluded."+column)
-	}
+		if first {
+			first = false
+		} else {
+			b.WriteString(", ")
+		}
 
-	str = "ON CONFLICT (" + strings.Join(conflictingColumns, ", ") + ") DO UPDATE SET " + strings.Join(values, ", ")
+		writeIdentifier(b, column)
+		b.WriteString(" = excluded.")
+		writeIdentifier(b, column)
+	}
 
 	return
 }

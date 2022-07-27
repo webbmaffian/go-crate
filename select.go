@@ -39,14 +39,6 @@ func (db *Crate) Select(dest any, q SelectQuery, options ...SelectOptions) (err 
 		return errors.New("Invalid destination")
 	}
 
-	if err != nil {
-		err = QueryError{
-			err:   err.Error(),
-			query: q.String(),
-			args:  *q.args,
-		}
-	}
-
 	return
 }
 
@@ -56,12 +48,12 @@ func selectOneIntoStruct(val reflect.Value, q *SelectQuery, db *Crate) (err erro
 	typ := elem.Type()
 	numFields := elem.NumField()
 	destProps := make([]any, 0, numFields)
-	selectedFields := make([]string, len(q.Select))
+	selectedFields := make([]any, len(q.Select))
 	q.Limit = 1
 
 	if len(q.Select) == 0 {
 		selectAll = true
-		q.Select = make([]string, 0, numFields)
+		q.Select = make([]any, 0, numFields)
 	} else {
 		copy(selectedFields, q.Select)
 		q.Select = q.Select[:0]
@@ -122,11 +114,11 @@ func selectIntoSlice(dest reflect.Value, q *SelectQuery, db *Crate) (err error) 
 	typ := elem.Type()
 	numFields := elem.NumField()
 	destProps := make([]any, 0, numFields)
-	selectedFields := make([]string, len(q.Select))
+	selectedFields := make([]any, len(q.Select))
 
 	if len(q.Select) == 0 {
 		selectAll = true
-		q.Select = make([]string, 0, numFields)
+		q.Select = make([]any, 0, numFields)
 	} else {
 		copy(selectedFields, q.Select)
 		q.Select = q.Select[:0]

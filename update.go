@@ -3,21 +3,25 @@ package crate
 import (
 	"context"
 	"reflect"
-	"strconv"
 	"strings"
 )
 
 func (db *Crate) Update(table string, src any, condition Condition) (err error) {
-	var fields []string
+	var b strings.Builder
+	b.Grow(100)
 	args := make([]any, 0, 10)
+
+	b.WriteString("UPDATE ")
+	writeIdentifier(&b, table)
+	b.WriteString(" SET ")
 
 	switch v := src.(type) {
 
 	case map[string]any:
-		fields, err = updateFromMap(v, &args)
+		err = updateFromMap(&b, v, &args)
 
 	case *map[string]any:
-		fields, err = updateFromMap(*v, &args)
+		err = updateFromMap(&b, *v, &args)
 
 	case BeforeMutation:
 		err = v.BeforeMutation(Updating)
@@ -26,7 +30,7 @@ func (db *Crate) Update(table string, src any, condition Condition) (err error) 
 			return
 		}
 
-		fields, err = updateFromStruct(src, &args)
+		err = updateFromStruct(&b, src, &args)
 
 	case *BeforeMutation:
 		err = (*v).BeforeMutation(Updating)
@@ -35,18 +39,21 @@ func (db *Crate) Update(table string, src any, condition Condition) (err error) 
 			return
 		}
 
-		fields, err = updateFromStruct(src, &args)
+		err = updateFromStruct(&b, src, &args)
 
 	default:
-		fields, err = updateFromStruct(src, &args)
+		err = updateFromStruct(&b, src, &args)
 	}
 
 	if err != nil {
 		return
 	}
 
-	q := "UPDATE " + table + " SET " + strings.Join(fields, ", ") + " WHERE " + condition.run(&args)
-	_, err = db.pool.Exec(context.Background(), q, args...)
+	b.WriteByte('\n')
+	b.WriteString("WHERE ")
+	condition.run(&b, &args)
+
+	_, err = db.pool.Exec(context.Background(), b.String(), args...)
 
 	if err == nil {
 		if s, ok := src.(AfterMutation); ok {
@@ -57,7 +64,7 @@ func (db *Crate) Update(table string, src any, condition Condition) (err error) 
 	} else {
 		err = QueryError{
 			err:   err.Error(),
-			query: q,
+			query: b.String(),
 			args:  args,
 		}
 	}
@@ -65,22 +72,26 @@ func (db *Crate) Update(table string, src any, condition Condition) (err error) 
 	return
 }
 
-func updateFromMap(src map[string]any, args *[]any) (fields []string, err error) {
-	numFields := len(src)
-	fields = make([]string, numFields)
-
-	i := 0
+func updateFromMap(b *strings.Builder, src map[string]any, args *[]any) (err error) {
+	first := true
 
 	for k, v := range src {
-		fields[i] = k + " = $" + strconv.Itoa(i+1)
-		*args = append(*args, v)
-		i++
+		if first {
+			first = false
+		} else {
+			b.WriteString(", ")
+		}
+
+		writeIdentifier(b, k)
+		b.WriteString(" = ")
+		writeParam(b, args, v)
 	}
 
 	return
 }
 
-func updateFromStruct(src any, args *[]any) (fields []string, err error) {
+func updateFromStruct(b *strings.Builder, src any, args *[]any) (err error) {
+	first := true
 	elem := reflect.ValueOf(src)
 
 	if elem.Kind() == reflect.Pointer {
@@ -89,9 +100,6 @@ func updateFromStruct(src any, args *[]any) (fields []string, err error) {
 
 	typ := elem.Type()
 	numFields := elem.NumField()
-	fields = make([]string, 0, numFields)
-
-	i := 0
 
 	for idx := 0; idx < numFields; idx++ {
 		f := elem.Field(idx)
@@ -113,9 +121,15 @@ func updateFromStruct(src any, args *[]any) (fields []string, err error) {
 			continue
 		}
 
-		fields = append(fields, col+" = $"+strconv.Itoa(i+1))
-		*args = append(*args, v)
-		i++
+		if first {
+			first = false
+		} else {
+			b.WriteString(", ")
+		}
+
+		writeIdentifier(b, col)
+		b.WriteString(" = ")
+		writeParam(b, args, v)
 	}
 
 	return
