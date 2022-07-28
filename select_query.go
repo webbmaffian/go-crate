@@ -3,7 +3,6 @@ package crate
 import (
 	"context"
 	"errors"
-	"strconv"
 	"strings"
 
 	"github.com/jackc/pgx/v4"
@@ -44,7 +43,7 @@ func (q *SelectQuery) String() string {
 }
 
 func (q *SelectQuery) buildQuery(b *strings.Builder, args *[]any) {
-	b.Grow(100)
+	b.Grow(300)
 
 	if q.Select != nil {
 		b.WriteString("SELECT ")
@@ -52,8 +51,11 @@ func (q *SelectQuery) buildQuery(b *strings.Builder, args *[]any) {
 		b.WriteByte('\n')
 	}
 
-	b.WriteString("FROM ")
-	q.From.buildQuery(b, args)
+	if q.From != nil {
+		b.WriteString("FROM ")
+		q.From.buildQuery(b, args)
+		b.WriteByte('\n')
+	}
 
 	if q.Join != nil {
 		q.Join.runJoin(b, args)
@@ -85,13 +87,13 @@ func (q *SelectQuery) buildQuery(b *strings.Builder, args *[]any) {
 
 	if q.Limit > 0 {
 		b.WriteString("LIMIT ")
-		b.Write(strconv.AppendInt([]byte{}, int64(q.Limit), 10))
+		writeInt(b, q.Limit)
 		b.WriteByte('\n')
 	}
 
 	if q.Offset > 0 {
 		b.WriteString("OFFSET ")
-
+		writeInt(b, q.Offset)
 		b.WriteByte('\n')
 	}
 }
