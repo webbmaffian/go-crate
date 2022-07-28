@@ -81,6 +81,29 @@ func (c Column) strings(cols *[]string) {
 	*cols = append(*cols, c...)
 }
 
+type AliasedColumn struct {
+	Column string
+	Alias  string
+}
+
+func (c AliasedColumn) writeColumns(b *strings.Builder) {
+	writeIdentifier(b, c.Column)
+	b.WriteString(" AS ")
+	writeIdentifier(b, c.Alias)
+}
+
+func (c AliasedColumn) has(column string) bool {
+	return c.Alias == column
+}
+
+func (c AliasedColumn) count() int {
+	return 1
+}
+
+func (c AliasedColumn) strings(cols *[]string) {
+	*cols = append(*cols, c.Alias)
+}
+
 type AggregatedColumn struct {
 	Func         string
 	ArgsCallback func(b *strings.Builder)
