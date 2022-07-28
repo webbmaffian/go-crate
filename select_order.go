@@ -28,12 +28,12 @@ func (o Asc) orderBy(b *strings.Builder) {
 		return
 	}
 
-	b.WriteString(o[0])
+	writeIdentifier(b, o[0])
 	b.WriteString(" ASC")
 
 	for _, v := range o[1:] {
 		b.WriteString(", ")
-		b.WriteString(v)
+		writeIdentifier(b, v)
 		b.WriteString(" ASC")
 	}
 }
@@ -45,12 +45,12 @@ func (o Desc) orderBy(b *strings.Builder) {
 		return
 	}
 
-	b.WriteString(o[0])
+	writeIdentifier(b, o[0])
 	b.WriteString(" DESC")
 
 	for _, v := range o[1:] {
 		b.WriteString(", ")
-		b.WriteString(v)
+		writeIdentifier(b, v)
 		b.WriteString(" DESC")
 	}
 }
