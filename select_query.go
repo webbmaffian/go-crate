@@ -14,11 +14,11 @@ type queryable interface {
 }
 
 type SelectQuery struct {
-	Select  []any
+	Select  columns
 	From    queryable
 	Join    []Join
 	Where   Condition
-	GroupBy []any
+	GroupBy columns
 	Having  Condition
 	OrderBy orderBy
 	Limit   int
@@ -46,9 +46,11 @@ func (q *SelectQuery) String() string {
 func (q *SelectQuery) buildQuery(b *strings.Builder, args *[]any) {
 	b.Grow(100)
 
-	b.WriteString("SELECT ")
-	writeIdentifier(b, q.Select...)
-	b.WriteByte('\n')
+	if q.Select != nil {
+		b.WriteString("SELECT ")
+		q.Select.writeColumns(b)
+		b.WriteByte('\n')
+	}
 
 	b.WriteString("FROM ")
 	q.From.buildQuery(b, args)
@@ -66,9 +68,9 @@ func (q *SelectQuery) buildQuery(b *strings.Builder, args *[]any) {
 		b.WriteByte('\n')
 	}
 
-	if len(q.GroupBy) != 0 {
+	if q.OrderBy != nil {
 		b.WriteString("GROUP BY ")
-		writeIdentifier(b, q.GroupBy...)
+		q.GroupBy.writeColumns(b)
 		b.WriteByte('\n')
 	}
 

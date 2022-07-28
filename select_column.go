@@ -1,3 +1,153 @@
 package crate
 
-type RawString string
+import "strings"
+
+type columns interface {
+	writeColumns(b *strings.Builder)
+	has(column string) bool
+	count() int
+	strings(cols *[]string)
+}
+
+type Columns []columns
+
+func (c Columns) writeColumns(b *strings.Builder) {
+	if len(c) == 0 {
+		return
+	}
+
+	c[0].writeColumns(b)
+
+	for _, v := range c[1:] {
+		b.WriteString(", ")
+		v.writeColumns(b)
+	}
+}
+
+func (c Columns) has(column string) bool {
+	for _, v := range c {
+		if v.has(column) {
+			return true
+		}
+	}
+
+	return false
+}
+
+func (c Columns) count() (count int) {
+	for _, v := range c {
+		count += v.count()
+	}
+
+	return
+}
+
+func (c Columns) strings(cols *[]string) {
+	for _, v := range c {
+		v.strings(cols)
+	}
+}
+
+type Column []string
+
+func (c Column) writeColumns(b *strings.Builder) {
+	if len(c) == 0 {
+		return
+	}
+
+	writeIdentifier(b, c[0])
+
+	for _, v := range c[1:] {
+		b.WriteString(", ")
+		writeIdentifier(b, v)
+	}
+}
+
+func (c Column) has(column string) bool {
+	for _, v := range c {
+		if v == column {
+			return true
+		}
+	}
+
+	return false
+}
+
+func (c Column) count() int {
+	return len(c)
+}
+
+func (c Column) strings(cols *[]string) {
+	*cols = append(*cols, c...)
+}
+
+type AggregatedColumn struct {
+	Func         string
+	ArgsCallback func(b *strings.Builder)
+	Alias        string
+}
+
+func (c AggregatedColumn) writeColumns(b *strings.Builder) {
+	b.WriteString(c.Func)
+
+	if c.ArgsCallback != nil {
+		b.WriteByte('(')
+		c.ArgsCallback(b)
+		b.WriteByte(')')
+	}
+
+	if c.Alias != "" {
+		b.WriteString(" AS ")
+		writeIdentifier(b, c.Alias)
+	}
+}
+
+func (c AggregatedColumn) has(column string) bool {
+	return c.Alias == column
+}
+
+func (c AggregatedColumn) count() int {
+	return 1
+}
+
+func (c AggregatedColumn) strings(cols *[]string) {
+	*cols = append(*cols, c.Alias)
+}
+
+func Count(alias string, distinctColumn ...string) AggregatedColumn {
+	return AggregatedColumn{
+		Func: "COUNT",
+		ArgsCallback: func(b *strings.Builder) {
+			if len(distinctColumn) == 0 {
+				b.WriteString("*")
+			} else {
+				b.WriteString("DISTINCT ")
+				writeIdentifier(b, distinctColumn[0])
+			}
+		},
+		Alias: alias,
+	}
+}
+
+func Unnest(column string, alias string) AggregatedColumn {
+	return AggregatedColumn{
+		Func: "UNNEST",
+		ArgsCallback: func(b *strings.Builder) {
+			writeIdentifier(b, column)
+		},
+		Alias: alias,
+	}
+}
+
+func DateTrunc(per string, column string, alias string) AggregatedColumn {
+	return AggregatedColumn{
+		Func: "date_trunc",
+		ArgsCallback: func(b *strings.Builder) {
+			b.WriteByte('\'')
+			b.WriteString(per)
+			b.WriteString("', ")
+			writeIdentifier(b, column)
+		},
+		Alias: alias,
+	}
+}

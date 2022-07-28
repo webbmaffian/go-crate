@@ -3,40 +3,11 @@ package crate
 import (
 	"database/sql/driver"
 	"reflect"
-	"regexp"
 	"strconv"
 	"strings"
 
 	"github.com/jackc/pgtype"
 )
-
-var fieldRegex *regexp.Regexp
-
-func init() {
-	fieldRegex = regexp.MustCompile("([a-zA-Z0-9_]+)$")
-}
-
-func sanitizeFieldName(name any) string {
-	return fieldRegex.FindString(name.(string))
-}
-
-func containsSuffix(slice []any, whole string, suffixes ...string) bool {
-	for _, str := range slice {
-		if str == whole {
-			return true
-		}
-
-		for _, suffix := range suffixes {
-			if v, ok := str.(string); ok {
-				if strings.HasSuffix(v, suffix) {
-					return true
-				}
-			}
-		}
-	}
-
-	return false
-}
 
 func fieldName(fld reflect.StructField) string {
 	if col, ok := fld.Tag.Lookup("db"); ok && col != "primary" {
@@ -87,7 +58,7 @@ func writeParam(b *strings.Builder, args *[]any, value any) {
 	writeInt(b, len(*args))
 }
 
-func writeIdentifier(b *strings.Builder, identifiers ...any) {
+func writeIdentifier(b *strings.Builder, identifiers ...string) {
 	if len(identifiers) == 0 {
 		return
 	}
@@ -101,19 +72,8 @@ func writeIdentifier(b *strings.Builder, identifiers ...any) {
 			b.WriteString(", ")
 		}
 
-		switch v := id.(type) {
-
-		case string:
-			b.WriteByte('"')
-			b.WriteString(v)
-			b.WriteByte('"')
-
-		case RawString:
-			b.WriteString(string(v))
-
-		default:
-			continue
-
-		}
+		b.WriteByte('"')
+		b.WriteString(id)
+		b.WriteByte('"')
 	}
 }

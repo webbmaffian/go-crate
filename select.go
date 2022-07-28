@@ -43,20 +43,16 @@ func (db *Crate) Select(dest any, q SelectQuery, options ...SelectOptions) (err 
 }
 
 func selectOneIntoStruct(val reflect.Value, q *SelectQuery, db *Crate) (err error) {
-	var selectAll bool
+	var selectedFields Column
+
 	elem := val.Elem()
 	typ := elem.Type()
 	numFields := elem.NumField()
 	destProps := make([]any, 0, numFields)
-	selectedFields := make([]any, len(q.Select))
 	q.Limit = 1
 
-	if len(q.Select) == 0 {
-		selectAll = true
-		q.Select = make([]any, 0, numFields)
-	} else {
-		copy(selectedFields, q.Select)
-		q.Select = q.Select[:0]
+	if q.Select == nil {
+		selectedFields = make(Column, 0, 10)
 	}
 
 	for i := 0; i < numFields; i++ {
@@ -73,10 +69,14 @@ func selectOneIntoStruct(val reflect.Value, q *SelectQuery, db *Crate) (err erro
 			continue
 		}
 
-		if selectAll || containsSuffix(selectedFields, col, "."+col, " "+col) {
-			q.Select = append(q.Select, col)
+		if q.Select == nil || q.Select.has(col) {
+			selectedFields = append(selectedFields, col)
 			destProps = append(destProps, f.Addr().Interface())
 		}
+	}
+
+	if q.Select == nil {
+		q.Select = selectedFields
 	}
 
 	err = q.run(db)
@@ -106,7 +106,7 @@ func selectOneIntoStruct(val reflect.Value, q *SelectQuery, db *Crate) (err erro
 }
 
 func selectIntoSlice(dest reflect.Value, q *SelectQuery, db *Crate) (err error) {
-	var selectAll bool
+	var selectedFields Column
 
 	destVal := dest.Elem()
 	val := reflect.New(destVal.Type().Elem())
@@ -114,14 +114,9 @@ func selectIntoSlice(dest reflect.Value, q *SelectQuery, db *Crate) (err error) 
 	typ := elem.Type()
 	numFields := elem.NumField()
 	destProps := make([]any, 0, numFields)
-	selectedFields := make([]any, len(q.Select))
 
-	if len(q.Select) == 0 {
-		selectAll = true
-		q.Select = make([]any, 0, numFields)
-	} else {
-		copy(selectedFields, q.Select)
-		q.Select = q.Select[:0]
+	if q.Select == nil {
+		selectedFields = make(Column, 0, 10)
 	}
 
 	for i := 0; i < numFields; i++ {
@@ -138,8 +133,8 @@ func selectIntoSlice(dest reflect.Value, q *SelectQuery, db *Crate) (err error) 
 			continue
 		}
 
-		if selectAll || containsSuffix(selectedFields, col, "."+col, " "+col) {
-			q.Select = append(q.Select, col)
+		if q.Select == nil || q.Select.has(col) {
+			selectedFields = append(selectedFields, col)
 			destProps = append(destProps, f.Addr().Interface())
 		}
 	}
@@ -166,6 +161,10 @@ func selectIntoSlice(dest reflect.Value, q *SelectQuery, db *Crate) (err error) 
 }
 
 func selectIntoWriter(w io.Writer, q *SelectQuery, opt SelectOptions, db *Crate) (err error) {
+	if q.Select == nil {
+		return errors.New("No columns to select")
+	}
+
 	err = q.run(db)
 
 	if err != nil {
@@ -179,12 +178,11 @@ func selectIntoWriter(w io.Writer, q *SelectQuery, opt SelectOptions, db *Crate)
 	var i int
 	var b []byte
 	var values []any
-	cols := make([]string, 0, len(q.Select))
-	m := map[string]any{}
+	numCols := q.Select.count()
+	cols := make([]string, 0, numCols)
+	m := make(map[string]any, numCols)
 
-	for _, col := range q.Select {
-		cols = append(cols, sanitizeFieldName(col))
-	}
+	q.Select.strings(&cols)
 
 	for q.Next() {
 		values, err = q.result.Values()
