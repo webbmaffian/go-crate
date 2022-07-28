@@ -111,7 +111,9 @@ type AggregatedColumn struct {
 }
 
 func (c AggregatedColumn) writeColumns(b *strings.Builder) {
-	b.WriteString(c.Func)
+	if c.Func != "" {
+		b.WriteString(c.Func)
+	}
 
 	if c.ArgsCallback != nil {
 		b.WriteByte('(')
@@ -170,6 +172,16 @@ func DateTrunc(per string, column string, alias string) AggregatedColumn {
 			b.WriteString(per)
 			b.WriteString("', ")
 			writeIdentifier(b, column)
+		},
+		Alias: alias,
+	}
+}
+
+func Has(column string, alias string) AggregatedColumn {
+	return AggregatedColumn{
+		ArgsCallback: func(b *strings.Builder) {
+			writeIdentifier(b, column)
+			b.WriteString(" IS NOT NULL")
 		},
 		Alias: alias,
 	}
