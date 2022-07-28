@@ -15,7 +15,7 @@ type Eq struct {
 }
 
 func (c Eq) run(b *strings.Builder, args *[]any) {
-	b.WriteString(c.Column)
+	writeIdentifier(b, c.Column)
 
 	if c.Value == nil {
 		b.WriteString(" IS NULL")
@@ -31,7 +31,7 @@ type NotEq struct {
 }
 
 func (c NotEq) run(b *strings.Builder, args *[]any) {
-	b.WriteString(c.Column)
+	writeIdentifier(b, c.Column)
 
 	if c.Value == nil {
 		b.WriteString(" IS NOT NULL")
@@ -47,7 +47,7 @@ type Gt struct {
 }
 
 func (c Gt) run(b *strings.Builder, args *[]any) {
-	b.WriteString(c.Column)
+	writeIdentifier(b, c.Column)
 	b.WriteString(" > ")
 	writeParam(b, args, c.Value)
 }
@@ -58,7 +58,7 @@ type Gte struct {
 }
 
 func (c Gte) run(b *strings.Builder, args *[]any) {
-	b.WriteString(c.Column)
+	writeIdentifier(b, c.Column)
 	b.WriteString(" >= ")
 	writeParam(b, args, c.Value)
 }
@@ -69,7 +69,7 @@ type Lt struct {
 }
 
 func (c Lt) run(b *strings.Builder, args *[]any) {
-	b.WriteString(c.Column)
+	writeIdentifier(b, c.Column)
 	b.WriteString(" < ")
 	writeParam(b, args, c.Value)
 }
@@ -80,7 +80,7 @@ type Lte struct {
 }
 
 func (c Lte) run(b *strings.Builder, args *[]any) {
-	b.WriteString(c.Column)
+	writeIdentifier(b, c.Column)
 	b.WriteString(" <= ")
 	writeParam(b, args, c.Value)
 }
@@ -127,7 +127,7 @@ type In struct {
 }
 
 func (c In) run(b *strings.Builder, args *[]any) {
-	b.WriteString(c.Column)
+	writeIdentifier(b, c.Column)
 
 	switch v := c.Value.(type) {
 	case SelectQuery:
@@ -154,7 +154,7 @@ type Contains struct {
 func (c Contains) run(b *strings.Builder, args *[]any) {
 	writeParam(b, args, c.Value)
 	b.WriteString(" = ANY ")
-	b.WriteString(c.Column)
+	writeIdentifier(b, c.Column)
 }
 
 func Raw(str string, params ...any) (r *raw) {
