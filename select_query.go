@@ -68,7 +68,7 @@ func (q *SelectQuery) buildQuery(b *strings.Builder, args *[]any) {
 		b.WriteByte('\n')
 	}
 
-	if q.OrderBy != nil {
+	if q.GroupBy != nil {
 		b.WriteString("GROUP BY ")
 		q.GroupBy.writeColumns(b)
 		b.WriteByte('\n')
