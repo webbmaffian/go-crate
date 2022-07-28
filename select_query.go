@@ -16,7 +16,7 @@ type queryable interface {
 type SelectQuery struct {
 	Select  columns
 	From    queryable
-	Join    []Join
+	Join    join
 	Where   Condition
 	GroupBy columns
 	Having  Condition
@@ -56,10 +56,7 @@ func (q *SelectQuery) buildQuery(b *strings.Builder, args *[]any) {
 	q.From.buildQuery(b, args)
 
 	if q.Join != nil {
-		for _, join := range q.Join {
-			join.run(b, args)
-			b.WriteByte('\n')
-		}
+		q.Join.runJoin(b, args)
 	}
 
 	if q.Where != nil {
