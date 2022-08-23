@@ -146,6 +146,31 @@ func (c In) run(b *strings.Builder, args *[]any) {
 	return
 }
 
+type NotIn struct {
+	Column string
+	Value  any
+}
+
+func (c NotIn) run(b *strings.Builder, args *[]any) {
+	writeIdentifier(b, c.Column)
+
+	switch v := c.Value.(type) {
+	case SelectQuery:
+		b.WriteString(" NOT IN (")
+		v.buildQuery(b, args)
+		b.WriteByte(')')
+	case SubquerySource:
+		b.WriteString(" NOT IN (")
+		v.query.buildQuery(b, args)
+		b.WriteByte(')')
+	default:
+		b.WriteString(" != ANY ")
+		writeParam(b, args, c.Value)
+	}
+
+	return
+}
+
 type Contains struct {
 	Column string
 	Value  any
