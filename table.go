@@ -1,6 +1,9 @@
 package crate
 
-import "strings"
+import (
+	"context"
+	"strings"
+)
 
 func (c *Crate) Table(name string) TableSource {
 	return TableSource{c, name}
@@ -31,4 +34,16 @@ func (t TableSource) Update(src any, condition Condition) error {
 
 func (t TableSource) Delete(condition Condition) error {
 	return t.db.Delete(t.name, condition)
+}
+
+func (t TableSource) Refresh() (err error) {
+	var b strings.Builder
+	b.Grow(100)
+
+	b.WriteString("REFRESH TABLE ")
+	writeIdentifier(&b, t.name)
+
+	_, err = db.pool.Exec(context.Background(), b.String())
+
+	return
 }
