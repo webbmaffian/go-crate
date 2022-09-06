@@ -43,7 +43,7 @@ func (t TableSource) Refresh() (err error) {
 	b.WriteString("REFRESH TABLE ")
 	writeIdentifier(&b, t.name)
 
-	_, err = db.pool.Exec(context.Background(), b.String())
+	_, err = t.db.pool.Exec(context.Background(), b.String())
 
 	return
 }
