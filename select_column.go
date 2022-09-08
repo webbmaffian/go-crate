@@ -213,3 +213,13 @@ func Max(column string, alias string) AggregatedColumn {
 		Alias: alias,
 	}
 }
+
+func Sum(column string, alias string) AggregatedColumn {
+	return AggregatedColumn{
+		Func: "SUM",
+		ArgsCallback: func(b *strings.Builder) {
+			writeIdentifier(b, column)
+		},
+		Alias: alias,
+	}
+}
