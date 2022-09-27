@@ -1,13 +1,14 @@
 package crate
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"io"
 	"reflect"
 )
 
-func (db *Crate) Select(dest any, q SelectQuery, options ...SelectOptions) (err error) {
+func (db *Crate) Select(ctx context.Context, dest any, q SelectQuery, options ...SelectOptions) (err error) {
 	var opt SelectOptions
 
 	if len(options) != 0 {
@@ -16,7 +17,7 @@ func (db *Crate) Select(dest any, q SelectQuery, options ...SelectOptions) (err 
 
 	switch d := dest.(type) {
 	case io.Writer:
-		return selectIntoWriter(d, &q, opt, db)
+		return selectIntoWriter(ctx, d, &q, opt, db)
 
 	case *map[string]any:
 		return errors.New("Not supported yet")
@@ -32,9 +33,9 @@ func (db *Crate) Select(dest any, q SelectQuery, options ...SelectOptions) (err 
 
 	switch destVal.Kind() {
 	case reflect.Slice:
-		err = selectIntoSlice(destPtr, &q, db)
+		err = selectIntoSlice(ctx, destPtr, &q, db)
 	case reflect.Struct:
-		err = selectOneIntoStruct(destPtr, &q, db)
+		err = selectOneIntoStruct(ctx, destPtr, &q, db)
 	default:
 		return errors.New("Invalid destination")
 	}
@@ -42,7 +43,7 @@ func (db *Crate) Select(dest any, q SelectQuery, options ...SelectOptions) (err 
 	return
 }
 
-func selectOneIntoStruct(val reflect.Value, q *SelectQuery, db *Crate) (err error) {
+func selectOneIntoStruct(ctx context.Context, val reflect.Value, q *SelectQuery, db *Crate) (err error) {
 	var selectedFields Column
 
 	elem := val.Elem()
@@ -79,7 +80,7 @@ func selectOneIntoStruct(val reflect.Value, q *SelectQuery, db *Crate) (err erro
 		q.Select = selectedFields
 	}
 
-	err = q.run(db)
+	err = q.run(ctx, db)
 
 	if err != nil {
 		return
@@ -105,7 +106,7 @@ func selectOneIntoStruct(val reflect.Value, q *SelectQuery, db *Crate) (err erro
 	return
 }
 
-func selectIntoSlice(dest reflect.Value, q *SelectQuery, db *Crate) (err error) {
+func selectIntoSlice(ctx context.Context, dest reflect.Value, q *SelectQuery, db *Crate) (err error) {
 	var selectedFields Column
 
 	destVal := dest.Elem()
@@ -139,7 +140,7 @@ func selectIntoSlice(dest reflect.Value, q *SelectQuery, db *Crate) (err error) 
 		}
 	}
 
-	err = q.run(db)
+	err = q.run(ctx, db)
 
 	if err != nil {
 		return
@@ -160,12 +161,12 @@ func selectIntoSlice(dest reflect.Value, q *SelectQuery, db *Crate) (err error) 
 	return
 }
 
-func selectIntoWriter(w io.Writer, q *SelectQuery, opt SelectOptions, db *Crate) (err error) {
+func selectIntoWriter(ctx context.Context, w io.Writer, q *SelectQuery, opt SelectOptions, db *Crate) (err error) {
 	if q.Select == nil {
 		return errors.New("No columns to select")
 	}
 
-	err = q.run(db)
+	err = q.run(ctx, db)
 
 	if err != nil {
 		return

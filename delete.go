@@ -5,7 +5,7 @@ import (
 	"strings"
 )
 
-func (c *Crate) Delete(table string, condition Condition) (err error) {
+func (c *Crate) Delete(ctx context.Context, table string, condition Condition) (err error) {
 	var b strings.Builder
 	b.Grow(64)
 	args := make([]any, 0, 2)
@@ -16,7 +16,7 @@ func (c *Crate) Delete(table string, condition Condition) (err error) {
 	b.WriteString("WHERE ")
 	condition.run(&b, &args)
 
-	_, err = c.pool.Exec(context.Background(), b.String(), args...)
+	_, err = c.pool.Exec(ctx, b.String(), args...)
 
 	if err != nil {
 		err = QueryError{

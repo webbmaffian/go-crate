@@ -8,7 +8,7 @@ import (
 	"golang.org/x/exp/slices"
 )
 
-func (c *Crate) BulkInsert(table string, columns []string, rows [][]any, onConflict ...OnConflictUpdate) (err error) {
+func (c *Crate) BulkInsert(ctx context.Context, table string, columns []string, rows [][]any, onConflict ...OnConflictUpdate) (err error) {
 	numColumns := len(columns)
 
 	if numColumns == 0 {
@@ -67,7 +67,7 @@ func (c *Crate) BulkInsert(table string, columns []string, rows [][]any, onConfl
 		}
 	}
 
-	_, err = c.pool.Exec(context.Background(), b.String(), args...)
+	_, err = c.pool.Exec(ctx, b.String(), args...)
 
 	return
 }

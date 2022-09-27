@@ -13,7 +13,7 @@ type ImportOptions struct {
 	OverwriteDuplicates bool
 }
 
-func (db *Crate) ImportJSON(table string, url string, options ImportOptions) (err error) {
+func (db *Crate) ImportJSON(ctx context.Context, table string, url string, options ImportOptions) (err error) {
 	var b strings.Builder
 	var args []any
 	b.Grow(100)
@@ -42,7 +42,7 @@ func (db *Crate) ImportJSON(table string, url string, options ImportOptions) (er
 
 	b.WriteString(")")
 
-	_, err = db.pool.Query(context.Background(), b.String(), args...)
+	_, err = db.pool.Query(ctx, b.String(), args...)
 
 	return
 }

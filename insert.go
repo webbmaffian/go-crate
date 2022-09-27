@@ -6,7 +6,7 @@ import (
 	"strings"
 )
 
-func (db *Crate) Insert(table string, src any, onConflict ...OnConflictUpdate) (err error) {
+func (db *Crate) Insert(ctx context.Context, table string, src any, onConflict ...OnConflictUpdate) (err error) {
 	var b strings.Builder
 	b.Grow(200)
 
@@ -65,7 +65,7 @@ func (db *Crate) Insert(table string, src any, onConflict ...OnConflictUpdate) (
 		}
 	}
 
-	_, err = db.pool.Exec(context.Background(), b.String(), args...)
+	_, err = db.pool.Exec(ctx, b.String(), args...)
 
 	if err == nil {
 		if s, ok := src.(AfterMutation); ok {

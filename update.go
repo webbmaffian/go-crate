@@ -6,7 +6,7 @@ import (
 	"strings"
 )
 
-func (db *Crate) Update(table string, src any, condition Condition) (err error) {
+func (db *Crate) Update(ctx context.Context, table string, src any, condition Condition) (err error) {
 	var b strings.Builder
 	b.Grow(100)
 	args := make([]any, 0, 10)
@@ -53,7 +53,7 @@ func (db *Crate) Update(table string, src any, condition Condition) (err error) 
 	b.WriteString("WHERE ")
 	condition.run(&b, &args)
 
-	_, err = db.pool.Exec(context.Background(), b.String(), args...)
+	_, err = db.pool.Exec(ctx, b.String(), args...)
 
 	if err == nil {
 		if s, ok := src.(AfterMutation); ok {

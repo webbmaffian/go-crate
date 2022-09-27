@@ -1,6 +1,7 @@
 package crate
 
 import (
+	"context"
 	"testing"
 
 	"github.com/jackc/pgtype"
@@ -31,7 +32,7 @@ func BenchmarkSelect(B *testing.B) {
 		B.Fatal(err)
 	}
 
-	db, err := NewCrate(config)
+	db, err := NewCrate(context.Background(), config)
 
 	if err != nil {
 		B.Fatal(err)
@@ -45,7 +46,7 @@ func BenchmarkSelect(B *testing.B) {
 		for i := 0; i < b.N; i++ {
 			var dest User
 
-			err = db.Select(&dest, SelectQuery{
+			err = db.Select(context.Background(), &dest, SelectQuery{
 				From: Table("users"),
 			})
 

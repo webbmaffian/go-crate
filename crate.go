@@ -9,7 +9,7 @@ import (
 	"github.com/jackc/pgx/v4/pgxpool"
 )
 
-func NewCrate(config *pgxpool.Config) (c Crate, err error) {
+func NewCrate(ctx context.Context, config *pgxpool.Config) (c Crate, err error) {
 	if config == nil {
 		err = errors.New("Missing config")
 		return
@@ -26,7 +26,7 @@ func NewCrate(config *pgxpool.Config) (c Crate, err error) {
 		return nil
 	}
 
-	c.pool, err = pgxpool.ConnectConfig(context.Background(), config)
+	c.pool, err = pgxpool.ConnectConfig(ctx, config)
 
 	return
 }

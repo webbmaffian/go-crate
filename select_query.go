@@ -98,12 +98,12 @@ func (q *SelectQuery) buildQuery(b *strings.Builder, args *[]any) {
 	}
 }
 
-func (q *SelectQuery) run(db *Crate) (err error) {
+func (q *SelectQuery) run(ctx context.Context, db *Crate) (err error) {
 	var b strings.Builder
 	args := make([]any, 0, 5)
 	q.buildQuery(&b, &args)
 
-	q.result, err = db.pool.Query(context.Background(), q.String(), args...)
+	q.result, err = db.pool.Query(ctx, q.String(), args...)
 
 	if err != nil {
 		err = QueryError{
