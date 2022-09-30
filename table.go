@@ -24,6 +24,18 @@ func (t TableSource) Select(ctx context.Context, dest any, q SelectQuery, option
 	return t.db.Select(ctx, dest, q, options...)
 }
 
+func (t TableSource) Iterate(ctx context.Context, q SelectQuery, iterator func(values []any) error) error {
+	q.From = t
+
+	return t.db.Iterate(ctx, q, iterator)
+}
+
+func (t TableSource) IterateRaw(ctx context.Context, q SelectQuery, iterator func(values [][]byte) error) error {
+	q.From = t
+
+	return t.db.IterateRaw(ctx, q, iterator)
+}
+
 func (t TableSource) Insert(ctx context.Context, src any, onConflict ...OnConflictUpdate) error {
 	return t.db.Insert(ctx, t.name, src, onConflict...)
 }
