@@ -36,6 +36,10 @@ func (t TableSource) IterateRaw(ctx context.Context, q SelectQuery, iterator fun
 	return t.db.IterateRaw(ctx, q, iterator)
 }
 
+func (t TableSource) ImportJSON(ctx context.Context, url string, options ImportOptions) ([]ImportResult, error) {
+	return t.db.ImportJSON(ctx, t.name, url, options)
+}
+
 func (t TableSource) Insert(ctx context.Context, src any, onConflict ...OnConflictUpdate) error {
 	return t.db.Insert(ctx, t.name, src, onConflict...)
 }
