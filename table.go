@@ -63,3 +63,17 @@ func (t TableSource) Refresh(ctx context.Context) (err error) {
 
 	return
 }
+
+func (t TableSource) HasRow(ctx context.Context, id string) (exists bool) {
+	var b strings.Builder
+	b.Grow(50)
+
+	b.WriteString("SELECT true FROM ")
+	writeIdentifier(&b, t.name)
+	b.WriteString(" WHERE _id = $1")
+
+	row := t.db.pool.QueryRow(ctx, b.String(), id)
+	row.Scan(&exists)
+
+	return
+}
