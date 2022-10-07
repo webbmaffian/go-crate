@@ -29,7 +29,7 @@ func (db *Crate) Insert(ctx context.Context, table string, src any, onConflict .
 		err = insertFromMap(&b, &values, &keys, &args, *v)
 
 	case BeforeMutation:
-		err = v.BeforeMutation(Inserting)
+		err = v.BeforeMutation(ctx, Inserting)
 
 		if err != nil {
 			return
@@ -38,7 +38,7 @@ func (db *Crate) Insert(ctx context.Context, table string, src any, onConflict .
 		err = insertFromStruct(&b, &values, &keys, &args, src)
 
 	case *BeforeMutation:
-		err = (*v).BeforeMutation(Inserting)
+		err = (*v).BeforeMutation(ctx, Inserting)
 
 		if err != nil {
 			return
@@ -69,9 +69,9 @@ func (db *Crate) Insert(ctx context.Context, table string, src any, onConflict .
 
 	if err == nil {
 		if s, ok := src.(AfterMutation); ok {
-			s.AfterMutation(Inserting)
+			s.AfterMutation(ctx, Inserting)
 		} else if s, ok := src.(*AfterMutation); ok {
-			(*s).AfterMutation(Inserting)
+			(*s).AfterMutation(ctx, Inserting)
 		}
 	} else {
 		err = QueryError{

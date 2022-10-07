@@ -1,5 +1,7 @@
 package crate
 
+import "context"
+
 type MutationType uint8
 
 const (
@@ -8,11 +10,11 @@ const (
 )
 
 type BeforeMutation interface {
-	BeforeMutation(MutationType) error
+	BeforeMutation(ctx context.Context, mutationType MutationType) error
 }
 
 type AfterMutation interface {
-	AfterMutation(MutationType)
+	AfterMutation(ctx context.Context, mutationType MutationType)
 }
 
 type IsZeroer interface {

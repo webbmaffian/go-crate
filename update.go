@@ -24,7 +24,7 @@ func (db *Crate) Update(ctx context.Context, table string, src any, condition Co
 		err = updateFromMap(&b, *v, &args)
 
 	case BeforeMutation:
-		err = v.BeforeMutation(Updating)
+		err = v.BeforeMutation(ctx, Updating)
 
 		if err != nil {
 			return
@@ -33,7 +33,7 @@ func (db *Crate) Update(ctx context.Context, table string, src any, condition Co
 		err = updateFromStruct(&b, src, &args)
 
 	case *BeforeMutation:
-		err = (*v).BeforeMutation(Updating)
+		err = (*v).BeforeMutation(ctx, Updating)
 
 		if err != nil {
 			return
@@ -57,9 +57,9 @@ func (db *Crate) Update(ctx context.Context, table string, src any, condition Co
 
 	if err == nil {
 		if s, ok := src.(AfterMutation); ok {
-			s.AfterMutation(Updating)
+			s.AfterMutation(ctx, Updating)
 		} else if s, ok := src.(*AfterMutation); ok {
-			(*s).AfterMutation(Updating)
+			(*s).AfterMutation(ctx, Updating)
 		}
 	} else {
 		err = QueryError{

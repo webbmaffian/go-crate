@@ -60,7 +60,7 @@ func BenchmarkSelect(B *testing.B) {
 		for i := 0; i < b.N; i++ {
 			var dest []User
 
-			err = db.Select(&dest, SelectQuery{
+			err = db.Select(context.Background(), &dest, SelectQuery{
 				From: Table("users"),
 			})
 
@@ -74,7 +74,7 @@ func BenchmarkSelect(B *testing.B) {
 		for i := 0; i < b.N; i++ {
 			dest := DummyWriter{}
 
-			err = db.Select(dest, SelectQuery{
+			err = db.Select(context.Background(), dest, SelectQuery{
 				Select: []string{"id", "status", "first_name", "last_name"},
 				From:   Table("users"),
 			})
