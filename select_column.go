@@ -206,7 +206,7 @@ func Min(column string, alias string) AggregatedColumn {
 
 func Max(column string, alias string) AggregatedColumn {
 	return AggregatedColumn{
-		Func: "MIN",
+		Func: "MAX",
 		ArgsCallback: func(b *strings.Builder) {
 			writeIdentifier(b, column)
 		},
