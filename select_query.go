@@ -28,8 +28,8 @@ type SelectQuery struct {
 }
 
 type SelectOptions struct {
-	BeforeMarshal func(data any) error
-	AfterMarshal  func(data any) error
+	BeforeMarshal func(data *map[string]any) error
+	AfterMarshal  func(data *map[string]any) error
 }
 
 func (q *SelectQuery) Error() error {
