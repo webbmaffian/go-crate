@@ -195,28 +195,24 @@ func RawColumn(column string, alias string) AggregatedColumn {
 }
 
 func Min(column string, alias string) AggregatedColumn {
-	return AggregatedColumn{
-		Func: "MIN",
-		ArgsCallback: func(b *strings.Builder) {
-			writeIdentifier(b, column)
-		},
-		Alias: alias,
-	}
+	return Aggregate("MIN", column, alias)
 }
 
 func Max(column string, alias string) AggregatedColumn {
-	return AggregatedColumn{
-		Func: "MAX",
-		ArgsCallback: func(b *strings.Builder) {
-			writeIdentifier(b, column)
-		},
-		Alias: alias,
-	}
+	return Aggregate("MAX", column, alias)
 }
 
 func Sum(column string, alias string) AggregatedColumn {
+	return Aggregate("SUM", column, alias)
+}
+
+func ArrayAgg(column string, alias string) AggregatedColumn {
+	return Aggregate("ARRAY_AGG", column, alias)
+}
+
+func Aggregate(aggFunc string, column string, alias string) AggregatedColumn {
 	return AggregatedColumn{
-		Func: "SUM",
+		Func: aggFunc,
 		ArgsCallback: func(b *strings.Builder) {
 			writeIdentifier(b, column)
 		},
