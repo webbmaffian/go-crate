@@ -11,6 +11,7 @@ type ImportOptions struct {
 	Shared              bool `json:"shared"`
 	CompressionGzip     bool `json:"compressionGzip"`
 	OverwriteDuplicates bool `json:"overwriteDuplicates"`
+	Partition           Condition
 }
 
 type ImportResult struct {
@@ -38,6 +39,13 @@ func (db *Crate) ImportJSON(ctx context.Context, table string, url string, optio
 
 	b.WriteString("COPY ")
 	writeIdentifier(&b, table)
+
+	if options.Partition != nil {
+		b.WriteString(" PARTITION (")
+		options.Partition.run(&b, &args)
+		b.WriteString(")")
+	}
+
 	b.WriteString(" FROM ")
 	writeParam(&b, &args, url)
 	b.WriteString(" WITH (format='json'")
