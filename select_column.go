@@ -187,10 +187,16 @@ func Has(column string, alias string) AggregatedColumn {
 	}
 }
 
-func RawColumn(column string, alias string) AggregatedColumn {
+func RawColumn(column string, alias ...string) AggregatedColumn {
+	var a string
+
+	if alias != nil {
+		a = alias[0]
+	}
+
 	return AggregatedColumn{
 		Func:  column,
-		Alias: alias,
+		Alias: a,
 	}
 }
 
