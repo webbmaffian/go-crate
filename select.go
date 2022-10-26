@@ -162,10 +162,6 @@ func selectIntoSlice(ctx context.Context, dest reflect.Value, q *SelectQuery, db
 }
 
 func selectIntoWriter(ctx context.Context, w io.Writer, q *SelectQuery, opt SelectOptions, db *Crate) (err error) {
-	if q.Select == nil {
-		return errors.New("No columns to select")
-	}
-
 	err = q.run(ctx, db)
 
 	if err != nil {
@@ -179,11 +175,14 @@ func selectIntoWriter(ctx context.Context, w io.Writer, q *SelectQuery, opt Sele
 	var i int
 	var b []byte
 	var values []any
-	numCols := q.Select.count()
-	cols := make([]string, 0, numCols)
+	colDescs := q.result.FieldDescriptions()
+	numCols := len(colDescs)
+	cols := make([]string, numCols)
 	m := make(map[string]any, numCols)
 
-	q.Select.strings(&cols)
+	for i := range colDescs {
+		cols[i] = string(colDescs[i].Name)
+	}
 
 	for q.Next() {
 		values, err = q.result.Values()
